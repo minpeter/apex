@@ -294,15 +294,15 @@ describe('applyCommand', () => {
     await writeConfig(env.configPath, { identity: { name: 'ReminderBase' } });
 
     const logs = await captureLogs(async () => {
-      await applyCommand('developer');
+      await applyCommand('apex');
     });
 
     const combined = logs.join('\n');
     expect(combined).toContain("openclaw gateway restart");
-    expect(combined).toContain("Preset 'developer' applied");
+    expect(combined).toContain("Preset 'apex' applied");
 
     const config = await readConfig(env.configPath);
-    expect(config.identity).toEqual({ name: 'DevBot', theme: 'coding assistant', emoji: '💻' });
+    expect(config.identity).toEqual({ name: 'Apex', theme: 'all-in-one power assistant', emoji: '⚡' });
   });
 
   test('handles preset with only MD files (no config)', async () => {
