@@ -108,3 +108,38 @@ Cast each level separately — avoids deep nested casting errors.
 - ISO timestamp with `replace(/[:.]/g, '-')` produces filename-safe backup names while preserving sort order.
 - `listBackups` can sort backup filenames lexicographically and reverse to get newest-first ordering.
 - Byte-for-byte validation should use `Buffer` input/output in tests to guarantee binary-safe copy semantics.
+
+## [2026-03-01] Task 10 Built-in Preset Templates
+- Built-in preset directories use `workspaceFiles: ['AGENTS.md', 'SOUL.md']` and keep `config` channel-agnostic.
+- `loadPreset('./src/presets/<name>')` smoke check passes for `default`, `developer`, `researcher`, `creative`.
+- Keep tools allow-lists minimal and explicit per persona (`developer` and `researcher` only where needed).
+
+## Task 9 - Preset Loader (2026-03-01)
+
+### Pattern: temp dir cleanup in tests
+Use `afterEach` with `tempDirs.splice(0)` array pattern to track and clean all temp dirs:
+```ts
+const tempDirs: string[] = [];
+async function createTempDir(prefix: string) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), `${prefix}-`));
+  tempDirs.push(dir);
+  return dir;
+}
+afterEach(async () => {
+  await Promise.all(tempDirs.splice(0).map(dir => fs.rm(dir, { recursive: true, force: true })));
+});
+```
+
+### Pattern: user presets override builtins
+Use `Set<string>` of user preset names to filter builtins:
+```ts
+const userPresetNames = new Set(userPresets.map(p => p.name));
+const filteredBuiltins = builtinPresets.filter(p => !userPresetNames.has(p.name));
+return [...filteredBuiltins, ...userPresets];
+```
+
+### readJson5 returns ConfigSnapshot
+`snapshot.parsed` is `Record<string, unknown>` — cast to `Partial<PresetManifest>` for validation.
+
+### savePreset
+`fs.mkdir(presetDir, { recursive: true })` handles nested dir creation.

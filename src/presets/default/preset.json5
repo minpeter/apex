@@ -1,0 +1,16 @@
+{
+  name: 'default',
+  description: 'Clean default OpenClaw configuration',
+  version: '1.0.0',
+  author: 'oh-my-openclaw',
+  tags: ['default', 'minimal'],
+  builtin: true,
+  config: {
+    identity: {
+      name: 'OpenClaw',
+      theme: 'helpful assistant',
+      emoji: '🦞',
+    },
+  },
+  workspaceFiles: ['AGENTS.md', 'SOUL.md'],
+}

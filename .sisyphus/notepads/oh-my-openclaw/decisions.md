@@ -34,3 +34,7 @@
 ## [2026-03-01] Task 8 Sensitive Fields Filter
 - Implemented `matchesPattern(path, pattern)` using dot-part comparison with `*` wildcard to satisfy no-regex constraint.
 - `filterSensitiveFields` recursively filters only object records and clones arrays/items to avoid input mutation.
+
+## [2026-03-01] Task 10 Built-in Preset Templates
+- Added four built-in presets under `src/presets/` (`default`, `developer`, `researcher`, `creative`) with identical manifest schema and persona-specific identity/model/tool defaults.
+- Standardized built-in workspace scaffolding to exactly `AGENTS.md` + `SOUL.md` for all templates.
