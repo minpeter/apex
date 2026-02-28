@@ -37,8 +37,12 @@ export async function exportCommand(name: string, options: ExportOptions = {}): 
   try {
     const snapshot = await readJson5(paths.configPath);
     currentConfig = snapshot.parsed;
-  } catch {
-    console.log(pc.yellow('⚠ No OpenClaw config found. Exporting empty config.'));
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('Cannot read file:')) {
+      console.log(pc.yellow('⚠ No OpenClaw config found. Exporting empty config.'));
+    } else {
+      throw err;
+    }
   }
 
   // Filter sensitive fields
