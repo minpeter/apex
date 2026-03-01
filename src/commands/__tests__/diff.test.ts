@@ -197,9 +197,53 @@ describe('diffCommand', () => {
     process.env.OPENCLAW_CONFIG_PATH = configPath;
 
     await expect(diffCommand('nonexistent-preset-xyz')).rejects.toThrow(
-      "Preset 'nonexistent-preset-xyz' not found."
+      "Preset 'nonexistent-preset-xyz' not found. Run 'apex list' to see available presets."
     );
   });
+
+  test('supports remote preset references in owner/repo format', async () => {
+    const configPath = path.join(tempStateDir, 'openclaw.json');
+    await fs.writeFile(configPath, '{}', 'utf-8');
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
+
+    const cachePath = path.join(
+      tempStateDir,
+      'apex',
+      'presets',
+      'minpeter--demo-researcher'
+    );
+    await fs.mkdir(cachePath, { recursive: true });
+    await fs.writeFile(
+      path.join(cachePath, 'preset.json5'),
+      JSON.stringify({
+        name: 'demo-researcher',
+        description: 'Cached remote preset for diff test',
+        version: '1.0.0',
+        config: {
+          identity: { name: 'RemoteBot' },
+        },
+      }),
+      'utf-8'
+    );
+
+    await diffCommand('minpeter/demo-researcher', { json: true });
+
+    const jsonOutput = output.at(-1);
+    expect(jsonOutput).toBeDefined();
+    const parsed = JSON.parse(jsonOutput as string) as {
+      preset: string;
+      changes: { path: string; type: string }[];
+      workspaceFiles: { toAdd: string[]; toReplace: string[] };
+    };
+
+    expect(parsed.preset).toBe('minpeter/demo-researcher');
+    expect(Array.isArray(parsed.changes)).toBe(true);
+    expect(typeof parsed.workspaceFiles).toBe('object');
+    expect(Array.isArray(parsed.workspaceFiles.toAdd)).toBe(true);
+    expect(Array.isArray(parsed.workspaceFiles.toReplace)).toBe(true);
+
+    await expect(fs.stat(cachePath)).resolves.toBeDefined();
+  }, 60_000);
 
   test('throws on invalid current config JSON5', async () => {
     const configPath = path.join(tempStateDir, 'openclaw.json');

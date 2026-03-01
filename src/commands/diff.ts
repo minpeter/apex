@@ -4,6 +4,7 @@ import { resolveOpenClawPaths } from '../core/config-path';
 import { isFileNotFoundError, readJson5 } from '../core/json5-utils';
 import { migrateLegacyKeys } from '../core/legacy-migration';
 import { loadPreset } from '../core/preset-loader';
+import { cloneToCache, isGitHubRef, parseGitHubRef } from '../core/remote';
 import { filterSensitiveFields } from '../core/sensitive-filter';
 import type { PresetManifest } from '../core/types';
 import { listWorkspaceFiles, resolveWorkspaceDir } from '../core/workspace';
@@ -30,6 +31,13 @@ async function resolvePresetForDiff(
   presetName: string,
   presetsDir: string
 ): Promise<PresetManifest> {
+  if (isGitHubRef(presetName)) {
+    const { owner, repo } = parseGitHubRef(presetName);
+    const cachePath = await cloneToCache(owner, repo, presetsDir);
+    console.log(pc.green(`Remote preset '${owner}/${repo}' ready.`));
+    return await loadPreset(cachePath);
+  }
+
   const userPresetPath = path.join(presetsDir, presetName);
   try {
     return await loadPreset(userPresetPath);
@@ -43,7 +51,9 @@ async function resolvePresetForDiff(
     (p) => p.name === presetName
   );
   if (!builtin) {
-    throw new Error(`Preset '${presetName}' not found.`);
+    throw new Error(
+      `Preset '${presetName}' not found. Run 'apex list' to see available presets.`
+    );
   }
 
   return builtin;
