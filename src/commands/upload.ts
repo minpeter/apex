@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -50,15 +51,40 @@ export function parseRepo(input: string): { owner: string; repo: string } {
 async function exec(
   command: string[],
   options?: { cwd?: string }
-): Promise<{ stdout: string; exitCode: number }> {
-  const proc = Bun.spawn(command, {
-    cwd: options?.cwd,
-    stdout: 'pipe',
-    stderr: 'pipe',
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const [file, ...args] = command;
+  if (!file) {
+    throw new Error('Command must not be empty');
+  }
+
+  return await new Promise((resolve, reject) => {
+    const child = spawn(file, args, {
+      cwd: options?.cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.setEncoding('utf-8');
+    child.stderr.setEncoding('utf-8');
+
+    child.stdout.on('data', (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk: string) => {
+      stderr += chunk;
+    });
+
+    child.on('error', reject);
+    child.on('close', (code) => {
+      resolve({
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        exitCode: code ?? 1,
+      });
+    });
   });
-  const stdout = await new Response(proc.stdout).text();
-  const exitCode = await proc.exited;
-  return { stdout: stdout.trim(), exitCode };
 }
 
 async function execOrThrow(
@@ -66,21 +92,14 @@ async function execOrThrow(
   errorMessage: string,
   options?: { cwd?: string }
 ): Promise<string> {
-  const proc = Bun.spawn(command, {
-    cwd: options?.cwd,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-  const stdout = await new Response(proc.stdout).text();
-  const stderr = await new Response(proc.stderr).text();
-  const exitCode = await proc.exited;
+  const { stdout, stderr, exitCode } = await exec(command, options);
 
   if (exitCode !== 0) {
-    const detail = stderr.trim() || stdout.trim();
+    const detail = stderr || stdout;
     throw new Error(`${errorMessage}${detail ? `: ${detail}` : ''}`);
   }
 
-  return stdout.trim();
+  return stdout;
 }
 
 async function checkGhInstalled(): Promise<void> {
