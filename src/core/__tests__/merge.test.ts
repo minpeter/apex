@@ -181,4 +181,24 @@ describe('deepMerge', () => {
 
     expect(result).toEqual({ items: [] });
   });
+
+  test('throws clear error when base contains circular reference', () => {
+    const baseChild: Record<string, unknown> = {};
+    baseChild.self = baseChild;
+    const base = { nested: baseChild };
+
+    expect(() => deepMerge(base, { nested: { self: {} } })).toThrow(
+      'Circular reference detected in deepMerge base at nested.self'
+    );
+  });
+
+  test('throws clear error when override contains circular reference', () => {
+    const overrideChild: Record<string, unknown> = {};
+    overrideChild.self = overrideChild;
+    const override = { nested: overrideChild };
+
+    expect(() => deepMerge({ nested: { self: {} } }, override)).toThrow(
+      'Circular reference detected in deepMerge override at nested.self'
+    );
+  });
 });
