@@ -6,6 +6,8 @@ import path from 'node:path';
 import { cloneToCache, isGitHubRef, parseGitHubRef } from '../remote';
 
 const tempDirs: string[] = [];
+const INVALID_GITHUB_REFERENCE_PATTERN = /Invalid GitHub reference/;
+const FAILED_TO_CLONE_PATTERN = /Failed to clone/;
 
 afterEach(async () => {
   await Promise.all(
@@ -105,7 +107,9 @@ describe('parseGitHubRef', () => {
   });
 
   test('throws with correct error message format', () => {
-    expect(() => parseGitHubRef('../bad')).toThrow(/Invalid GitHub reference/);
+    expect(() => parseGitHubRef('../bad')).toThrow(
+      INVALID_GITHUB_REFERENCE_PATTERN
+    );
   });
 });
 
@@ -188,6 +192,6 @@ describe('cloneToCache', () => {
         'nonexistent-repo-xyz-abc',
         presetsDir
       )
-    ).rejects.toThrow(/Failed to clone/);
+    ).rejects.toThrow(FAILED_TO_CLONE_PATTERN);
   }, 60_000);
 });

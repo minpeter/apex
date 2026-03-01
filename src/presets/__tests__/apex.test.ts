@@ -5,6 +5,12 @@ import { fileURLToPath } from 'node:url';
 import { loadPreset } from '../../core/preset-loader';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const APEX_DESCRIPTION_PATTERN = /all-in-one|power/;
+const AUTH_KEY_PATTERN = /(^|\.)auth$/i;
+const ENV_KEY_PATTERN = /(^|\.)env$/i;
+const META_KEY_PATTERN = /(^|\.)meta$/i;
+const API_KEY_PATTERN = /apikey/i;
+const TOKEN_KEY_PATTERN = /(^|\.)(token|botToken|accessToken)$/i;
 
 function collectKeyPaths(value: unknown, parent = ''): string[] {
   if (!value || typeof value !== 'object') {
@@ -35,7 +41,7 @@ describe('apex preset', () => {
 
     expect(preset.name).toBe('apex');
     expect(preset.version).toBe('1.0.0');
-    expect(preset.description.toLowerCase()).toMatch(/all-in-one|power/);
+    expect(preset.description.toLowerCase()).toMatch(APEX_DESCRIPTION_PATTERN);
   });
 
   test('includes exactly five workspace files in expected order', async () => {
@@ -64,13 +70,11 @@ describe('apex preset', () => {
     const preset = await loadPreset(path.join(__dirname, '..', 'apex'));
     const keyPaths = collectKeyPaths(preset.config);
 
-    expect(keyPaths.some((key) => /(^|\.)auth$/i.test(key))).toBe(false);
-    expect(keyPaths.some((key) => /(^|\.)env$/i.test(key))).toBe(false);
-    expect(keyPaths.some((key) => /(^|\.)meta$/i.test(key))).toBe(false);
-    expect(keyPaths.some((key) => /apikey/i.test(key))).toBe(false);
-    expect(
-      keyPaths.some((key) => /(^|\.)(token|botToken|accessToken)$/i.test(key))
-    ).toBe(false);
+    expect(keyPaths.some((key) => AUTH_KEY_PATTERN.test(key))).toBe(false);
+    expect(keyPaths.some((key) => ENV_KEY_PATTERN.test(key))).toBe(false);
+    expect(keyPaths.some((key) => META_KEY_PATTERN.test(key))).toBe(false);
+    expect(keyPaths.some((key) => API_KEY_PATTERN.test(key))).toBe(false);
+    expect(keyPaths.some((key) => TOKEN_KEY_PATTERN.test(key))).toBe(false);
   });
 
   test('marks apex as builtin preset', async () => {

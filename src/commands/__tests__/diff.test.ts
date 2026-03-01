@@ -5,6 +5,8 @@ import path from 'node:path';
 
 import { diffCommand } from '../diff';
 
+const ADDED_KEY_PATTERN = /identity|agents|tools/;
+
 describe('diffCommand', () => {
   let output: string[] = [];
   const originalLog = console.log;
@@ -20,14 +22,14 @@ describe('diffCommand', () => {
       path.join(os.tmpdir(), 'openclaw-diff-test-')
     );
     process.env.OPENCLAW_STATE_DIR = tempStateDir;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
   });
 
   afterEach(async () => {
     console.log = originalLog;
 
-    delete process.env.OPENCLAW_STATE_DIR;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_STATE_DIR');
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
 
     if (tempStateDir) {
       await fs.rm(tempStateDir, { recursive: true, force: true });
@@ -46,7 +48,7 @@ describe('diffCommand', () => {
     // apex preset has identity, agents, tools keys
     expect(combined).toContain('+');
     // Should show added keys from apex preset
-    expect(combined).toMatch(/identity|agents|tools/);
+    expect(combined).toMatch(ADDED_KEY_PATTERN);
   });
 
   test('shows changed values with old → new format', async () => {
@@ -120,7 +122,7 @@ describe('diffCommand', () => {
     const jsonOutput = output.join('\n');
     const parsed = JSON.parse(jsonOutput) as {
       preset: string;
-      changes: Array<{ path: string; type: string }>;
+      changes: { path: string; type: string }[];
       workspaceFiles: { toAdd: string[]; toReplace: string[] };
     };
 
@@ -147,7 +149,7 @@ describe('diffCommand', () => {
     const jsonOutput = output.join('\n');
     const parsed = JSON.parse(jsonOutput) as {
       preset: string;
-      changes: Array<{ path: string; type: string }>;
+      changes: { path: string; type: string }[];
       workspaceFiles: { toAdd: string[]; toReplace: string[] };
     };
 

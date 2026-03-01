@@ -28,7 +28,12 @@ export async function createWorkspaceBackup(
 
     try {
       await fs.copyFile(src, dest);
-    } catch {}
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code !== 'ENOENT') {
+        throw error;
+      }
+    }
   }
 
   return backupSubDir;

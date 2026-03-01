@@ -54,7 +54,7 @@ describe('json5-utils', () => {
     );
   });
 
-  test('throws descriptive error for missing file', async () => {
+  test('throws descriptive error for missing file', () => {
     const filePath = path.join(os.tmpdir(), `missing-${Date.now()}.json5`);
 
     return expect(readJson5(filePath)).rejects.toThrow(

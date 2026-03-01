@@ -18,8 +18,8 @@ afterEach(() => {
 
 describe('resolveOpenClawPaths', () => {
   test('defaults to $HOME/.openclaw/openclaw.json', async () => {
-    delete process.env.OPENCLAW_CONFIG_PATH;
-    delete process.env.OPENCLAW_STATE_DIR;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
+    Reflect.deleteProperty(process.env, 'OPENCLAW_STATE_DIR');
 
     const resolved = await resolveOpenClawPaths();
 
@@ -31,7 +31,7 @@ describe('resolveOpenClawPaths', () => {
 
   test('uses OPENCLAW_CONFIG_PATH when set', async () => {
     process.env.OPENCLAW_CONFIG_PATH = '/tmp/custom.json';
-    delete process.env.OPENCLAW_STATE_DIR;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_STATE_DIR');
 
     const resolved = await resolveOpenClawPaths();
 
@@ -41,7 +41,7 @@ describe('resolveOpenClawPaths', () => {
 
   test('uses OPENCLAW_STATE_DIR/openclaw.json when set', async () => {
     process.env.OPENCLAW_STATE_DIR = '/tmp/state';
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
 
     const resolved = await resolveOpenClawPaths();
 
@@ -53,7 +53,7 @@ describe('resolveOpenClawPaths', () => {
     const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openclaw-state-'));
     tempDirs.push(stateDir);
     process.env.OPENCLAW_STATE_DIR = stateDir;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
 
     const resolved = await resolveOpenClawPaths();
 

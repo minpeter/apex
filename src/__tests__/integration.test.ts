@@ -33,7 +33,7 @@ describe('integration workflow and edge cases', () => {
 
     configPath = join(stateDir, 'openclaw.json');
     process.env.OPENCLAW_CONFIG_PATH = configPath;
-    delete process.env.OPENCLAW_STATE_DIR;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_STATE_DIR');
   });
 
   afterEach(async () => {

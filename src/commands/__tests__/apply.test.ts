@@ -16,6 +16,7 @@ interface TempEnv {
 
 const tempDirs: string[] = [];
 const originalEnv = { ...process.env };
+const FAILED_TO_CLONE_PATTERN = /Failed to clone/;
 
 async function createTempEnv(prefix: string): Promise<TempEnv> {
   const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
@@ -32,7 +33,7 @@ async function createTempEnv(prefix: string): Promise<TempEnv> {
   await fs.mkdir(backupsDir, { recursive: true });
 
   process.env.OPENCLAW_CONFIG_PATH = configPath;
-  delete process.env.OPENCLAW_STATE_DIR;
+  Reflect.deleteProperty(process.env, 'OPENCLAW_STATE_DIR');
 
   return { stateDir, configPath, workspaceDir, presetsDir, backupsDir };
 }
@@ -658,6 +659,6 @@ describe('remote apply', () => {
       applyCommand('nonexistent-owner-xyz-abc/nonexistent-repo-xyz-abc', {
         noBackup: true,
       })
-    ).rejects.toThrow(/Failed to clone/);
+    ).rejects.toThrow(FAILED_TO_CLONE_PATTERN);
   }, 60_000);
 });

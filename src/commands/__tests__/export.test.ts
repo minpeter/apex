@@ -20,14 +20,14 @@ describe('exportCommand', () => {
       path.join(os.tmpdir(), 'openclaw-export-test-')
     );
     process.env.OPENCLAW_STATE_DIR = tempStateDir;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
   });
 
   afterEach(async () => {
     console.log = originalLog;
 
-    delete process.env.OPENCLAW_STATE_DIR;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_STATE_DIR');
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
 
     if (tempStateDir) {
       await fs.rm(tempStateDir, { recursive: true, force: true });

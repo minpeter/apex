@@ -9,18 +9,8 @@
   },
   "linter": {
     "rules": {
-      "complexity": {
-        "noExcessiveCognitiveComplexity": "off"
-      },
-      "performance": {
-        "noDelete": "off",
-        "useTopLevelRegex": "off"
-      },
       "suspicious": {
-        "noControlCharactersInRegex": "off",
-        "noEmptyBlockStatements": "off",
-        "noConsole": "off",
-        "useAwait": "off"
+        "noConsole": "off"
       },
       "style": {
         "noMagicNumbers": "off"

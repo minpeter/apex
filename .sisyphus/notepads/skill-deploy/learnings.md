@@ -1,0 +1,3 @@
+- Created prompt-guard skill for apex preset with agent-oriented documentation.
+- Extracted security levels and categories from TOOLS.md for structured presentation.
+- Followed OpenClaw skill format with YAML frontmatter and emoji.

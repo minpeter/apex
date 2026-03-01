@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { stripVTControlCharacters } from 'node:util';
 
 import { listCommand } from '../list';
+
+const BUILTIN_NAME_LINE_PATTERN = /^\s{2}\S+ \[builtin\]$/;
 
 describe('listCommand', () => {
   let output: string[] = [];
@@ -13,11 +16,7 @@ describe('listCommand', () => {
   beforeEach(async () => {
     output = [];
     console.log = (...args: unknown[]) => {
-      // Strip ANSI escape codes so regex matching works regardless of color support
-      const stripped = args
-        .map(String)
-        .join(' ')
-        .replace(/\x1b\[[0-9;]*m/g, '');
+      const stripped = stripVTControlCharacters(args.map(String).join(' '));
       output.push(stripped);
     };
 
@@ -25,14 +24,14 @@ describe('listCommand', () => {
       path.join(os.tmpdir(), 'openclaw-list-test-')
     );
     process.env.OPENCLAW_STATE_DIR = tempStateDir;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
   });
 
   afterEach(async () => {
     console.log = originalLog;
 
-    delete process.env.OPENCLAW_STATE_DIR;
-    delete process.env.OPENCLAW_CONFIG_PATH;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_STATE_DIR');
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
 
     if (tempStateDir) {
       await fs.rm(tempStateDir, { recursive: true, force: true });
@@ -46,9 +45,7 @@ describe('listCommand', () => {
     expect(combined).toContain('apex');
     expect(combined).toContain('[builtin]');
 
-    const nameLines = output.filter((line) =>
-      /^\s{2}\S+ \[builtin\]$/.test(line)
-    );
+    const nameLines = output.filter((line) => BUILTIN_NAME_LINE_PATTERN.test(line));
     expect(nameLines.length).toBe(1);
 
     const versionLines = output.filter((line) =>

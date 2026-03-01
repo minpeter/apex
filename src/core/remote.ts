@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const GITHUB_OWNER_REPO_REGEX = /^[a-zA-Z0-9._-]+$/;
+const TRAILING_SLASH_PATTERN = /\/+$/;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -49,7 +50,7 @@ export function isGitHubRef(input: string): boolean {
 
 export function parseGitHubRef(input: string): { owner: string; repo: string } {
   const errorMessage = `Invalid GitHub reference: '${input}'. Expected format: 'owner/repo' or 'https://github.com/owner/repo'`;
-  const normalizedInput = input.replace(/\/+$/, '');
+  const normalizedInput = input.replace(TRAILING_SLASH_PATTERN, '');
 
   if (!normalizedInput || isPathTraversalAttempt(normalizedInput)) {
     throw new Error(errorMessage);
@@ -133,6 +134,12 @@ export async function cloneToCache(
       `Failed to clone '${owner}/${repo}'. Ensure the repository exists and is public.`
     );
   } finally {
-    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(tmpDir, { recursive: true, force: true }).catch(
+      (error: unknown) => {
+        if (!(error instanceof Error)) {
+          return;
+        }
+      }
+    );
   }
 }

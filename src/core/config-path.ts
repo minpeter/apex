@@ -5,7 +5,7 @@ import path from 'node:path';
 import { OH_MY_OPENCLAW_DIR } from './constants';
 import type { ResolvedPaths } from './types';
 
-export async function resolveOpenClawPaths(): Promise<ResolvedPaths> {
+export function resolveOpenClawPaths(): ResolvedPaths {
   let configPath: string;
   let stateDir: string;
 

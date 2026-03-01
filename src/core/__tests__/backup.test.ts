@@ -6,6 +6,7 @@ import path from 'node:path';
 import { createBackup, listBackups } from '../backup';
 
 const tempDirs: string[] = [];
+const BACKUP_FILE_NAME_PATTERN = /^openclaw\.json\..+\.bak$/;
 
 async function createTempDir(prefix: string): Promise<string> {
   const dir = await mkdtemp(path.join(os.tmpdir(), prefix));
@@ -32,7 +33,7 @@ describe('backup manager', () => {
     const backupPath = await createBackup(configPath, backupsDir);
 
     expect(backupPath.startsWith(backupsDir)).toBe(true);
-    expect(path.basename(backupPath)).toMatch(/^openclaw\.json\..+\.bak$/);
+    expect(path.basename(backupPath)).toMatch(BACKUP_FILE_NAME_PATTERN);
   });
 
   test('backup content matches original byte-for-byte', async () => {
