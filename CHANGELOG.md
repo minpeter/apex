@@ -1,5 +1,13 @@
 # oh-my-openclaw
 
+## 1.1.2
+
+### Patch Changes
+
+- 66fa226: Fix export command writing preset manifest twice during export
+- eac8e88: Run fixNodePathIfNeeded only on macOS to avoid unnecessary path manipulation on other platforms
+- 345af8d: Validate owner/repo format before attempting git clone to provide clear error messages
+
 ## 1.1.1
 
 ### Patch Changes
