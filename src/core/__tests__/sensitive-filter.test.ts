@@ -149,12 +149,31 @@ describe('filterSensitiveFields', () => {
       expect(isSensitivePath(['hooks', 'token'])).toBe(true);
     });
 
-    test('matches models.providers.*.apiKey with any provider name', () => {
+    test('matches models.providers.**.apiKey across nested provider paths', () => {
       expect(isSensitivePath(['models', 'providers', 'openai', 'apiKey'])).toBe(
         true
       );
       expect(
         isSensitivePath(['models', 'providers', 'anthropic', 'apiKey'])
+      ).toBe(true);
+      expect(
+        isSensitivePath([
+          'models',
+          'providers',
+          'anthropic',
+          'settings',
+          'apiKey',
+        ])
+      ).toBe(true);
+      expect(
+        isSensitivePath([
+          'models',
+          'providers',
+          'anthropic',
+          'region',
+          'seoul',
+          'apiKey',
+        ])
       ).toBe(true);
       expect(isSensitivePath(['models', 'providers', 'custom', 'apiKey'])).toBe(
         true
@@ -177,6 +196,15 @@ describe('filterSensitiveFields', () => {
       expect(isSensitivePath(['gateway', 'port'])).toBe(false);
       expect(
         isSensitivePath(['models', 'providers', 'openai', 'baseUrl'])
+      ).toBe(false);
+      expect(
+        isSensitivePath([
+          'models',
+          'providers',
+          'anthropic',
+          'settings',
+          'baseUrl',
+        ])
       ).toBe(false);
     });
 

@@ -20,7 +20,7 @@ describe('core constants', () => {
       'meta',
       'gateway.auth',
       'hooks.token',
-      'models.providers.*.apiKey',
+      'models.providers.**.apiKey',
       'channels.*.botToken',
       'channels.*.token',
     ];
