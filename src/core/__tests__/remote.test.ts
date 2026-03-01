@@ -210,6 +210,8 @@ describe('cloneToCache', () => {
     );
     await expect(clonePromise).rejects.toThrow(FAILED_TO_CLONE_PATTERN);
     await expect(clonePromise).rejects.toThrow(FAILED_TO_CLONE_DETAILS_PATTERN);
-    await expect(clonePromise).rejects.toThrow(FAILED_TO_CLONE_GIT_FATAL_PATTERN);
+    await expect(clonePromise).rejects.toThrow(
+      FAILED_TO_CLONE_GIT_FATAL_PATTERN
+    );
   }, 60_000);
 });
