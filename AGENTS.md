@@ -109,6 +109,31 @@ The apex preset includes a `config.routing` key that enables task-type based mod
 - The `rules` array replaces entirely on merge (standard array merge semantics — no append).
 - To disable routing, set `routing: null` in a user preset override (delete semantics).
 
+## BRANCH PROTECTION (main)
+
+The `main` branch is protected with the following rules:
+
+- Direct push to main is forbidden. All changes must go through a Pull Request.
+- CI (Release workflow) must pass before merge is allowed.
+- Force push and branch deletion are blocked.
+- `enforce_admins` is off — repo owner can bypass in emergencies via `--admin` flag.
+- Auto-merge requires explicit enable in repo settings.
+
+### Workflow for changes
+
+1. Create a feature branch: `git checkout -b feat/my-change`
+2. Make changes, commit, push to the branch
+3. Open a PR against `main`
+4. Wait for CI to pass (typecheck, lint, test, build)
+5. Merge (squash preferred)
+6. If the PR includes a changeset, the Release workflow will auto-create a "Version Packages" PR for the next version bump
+
+### Changesets flow
+
+- Add a changeset: `bunx changeset` (or manually create `.changeset/<name>.md`)
+- On merge to main, the Release workflow detects changesets and creates a "Version Packages" PR
+- Merging that PR triggers npm publish via OIDC (no NPM_TOKEN needed, Trusted Publisher configured)
+
 ## ANTI-PATTERNS
 
 - Assuming JSON5 comments survive apply; they are dropped when config is rewritten.
