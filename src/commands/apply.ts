@@ -164,8 +164,10 @@ export async function applyCommand(presetName: string, options: ApplyOptions = {
   }
 
   if (preset.skills?.length) {
-    await copySkills(presetDir, preset.skills, { force: options.force });
-    console.log(pc.green(`OK Skills installed: ${preset.skills.join(', ')}`));
+    const installed = await copySkills(presetDir, preset.skills, { force: options.force });
+    if (installed.length > 0) {
+      console.log(pc.green(`OK Skills installed: ${installed.join(', ')}`));
+    }
   }
 
   console.log(pc.green(`\nOK Preset '${preset.name}' applied.`));

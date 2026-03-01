@@ -49,9 +49,9 @@ export async function copySkills(
   presetDir: string,
   skills: string[],
   options?: CopySkillsOptions,
-): Promise<void> {
+): Promise<string[]> {
   if (skills.length === 0) {
-    return;
+    return [];
   }
 
   const sourceBaseDir = path.join(presetDir, 'skills');
@@ -60,6 +60,7 @@ export async function copySkills(
   const isDryRun = options?.dryRun === true;
   const forceOverwrite = options?.force === true;
   let targetBaseEnsured = false;
+  const installed: string[] = [];
 
   for (const name of skills) {
     const srcDir = path.join(sourceBaseDir, name);
@@ -101,5 +102,7 @@ export async function copySkills(
 
     await fs.cp(srcDir, destDir, { recursive: true });
     console.log(`OK Skill '${name}' installed.`);
+    installed.push(name);
   }
+  return installed;
 }
