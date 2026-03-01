@@ -108,9 +108,7 @@ describe('json5-utils', () => {
 
   describe('hasJson5Comments', () => {
     test('returns true for line comments', () => {
-      expect(hasJson5Comments('{\n  // comment\n  name: "test"\n}')).toBe(
-        true
-      );
+      expect(hasJson5Comments('{\n  // comment\n  name: "test"\n}')).toBe(true);
     });
 
     test('returns true for block comments', () => {
