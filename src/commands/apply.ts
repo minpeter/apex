@@ -34,6 +34,7 @@ interface ApplyOptions {
   dryRun?: boolean;
   force?: boolean;
   noBackup?: boolean;
+  verbose?: boolean;
 }
 
 interface ResolvedPreset {
@@ -54,6 +55,33 @@ function resolveBuiltinPresetDir(presetName: string): string {
 
 function hasPresetConfig(preset: PresetManifest): boolean {
   return Boolean(preset.config && Object.keys(preset.config).length > 0);
+}
+
+function logVerbose(enabled: boolean, message: string): void {
+  if (!enabled) {
+    return;
+  }
+
+  console.log(pc.dim(`[verbose] ${message}`));
+}
+
+function getBackupMode(noBackup: boolean | undefined): string {
+  if (noBackup) {
+    return 'disabled';
+  }
+
+  return 'enabled';
+}
+
+function describeConfigStatus(
+  configExists: boolean,
+  configPath: string
+): string {
+  if (configExists) {
+    return `Current config found at ${configPath}`;
+  }
+
+  return `Current config not found at ${configPath}`;
 }
 
 async function resolvePreset(
@@ -349,20 +377,34 @@ export async function applyCommand(
   presetName: string,
   options: ApplyOptions = {}
 ): Promise<void> {
+  const verbose = Boolean(options.verbose);
   const paths = await resolveOpenClawPaths();
+  logVerbose(
+    verbose,
+    `Resolved paths: config=${paths.configPath}, presets=${paths.presetsDir}, backups=${paths.backupsDir}, state=${paths.stateDir}`
+  );
+
+  logVerbose(verbose, `Resolving preset '${presetName}'`);
   const { preset, presetDir } = await resolvePreset(
     presetName,
     paths.presetsDir,
     options.force
   );
+  logVerbose(verbose, `Loaded preset '${preset.name}' from ${presetDir}`);
 
   const configSnapshot = await loadCurrentConfig(paths.configPath);
   let currentConfig = configSnapshot.config;
   let configExists = configSnapshot.exists;
   const configHasJson5Comments = configSnapshot.hasJson5Comments;
   const workspaceDir = resolveWorkspaceDir(currentConfig, paths.stateDir);
+  logVerbose(verbose, describeConfigStatus(configExists, paths.configPath));
+  logVerbose(verbose, `Workspace directory resolved to ${workspaceDir}`);
 
   if (options.clean && !options.dryRun) {
+    logVerbose(
+      verbose,
+      `Running clean mode with backup ${getBackupMode(options.noBackup)}`
+    );
     await runCleanMode(
       workspaceDir,
       paths.configPath,
@@ -373,6 +415,7 @@ export async function applyCommand(
 
     currentConfig = {};
     configExists = false;
+    logVerbose(verbose, 'Clean mode completed');
     console.log(
       pc.yellow('Clean install: existing config and workspace files removed.')
     );
@@ -381,6 +424,10 @@ export async function applyCommand(
   const { applied, mergedConfig, preserved } = buildMergedConfig(
     currentConfig,
     preset
+  );
+  logVerbose(
+    verbose,
+    `Merge complete: ${Object.keys(mergedConfig).length} top-level keys`
   );
   if (applied.length > 0) {
     console.log(pc.dim(`Legacy key migration: ${applied.join(', ')}`));
@@ -392,6 +439,7 @@ export async function applyCommand(
   }
 
   if (options.dryRun) {
+    logVerbose(verbose, 'Dry-run requested; skipping backup and write steps');
     if (options.clean) {
       console.log(pc.yellow('Mode: CLEAN INSTALL'));
     }
@@ -404,6 +452,10 @@ export async function applyCommand(
   }
 
   if (!options.clean) {
+    logVerbose(
+      verbose,
+      `Running regular backup mode with backup ${getBackupMode(options.noBackup)}`
+    );
     await runRegularBackupMode(
       workspaceDir,
       paths.configPath,
@@ -415,6 +467,7 @@ export async function applyCommand(
   }
 
   if (hasPresetConfig(preset)) {
+    logVerbose(verbose, `Writing merged config to ${paths.configPath}`);
     if (configExists) {
       console.log(
         pc.yellow(
@@ -437,6 +490,10 @@ export async function applyCommand(
   }
 
   if (preset.workspaceFiles?.length) {
+    logVerbose(
+      verbose,
+      `Copying ${preset.workspaceFiles.length} workspace file(s) from ${presetDir} to ${workspaceDir}`
+    );
     await copyWorkspaceFiles(presetDir, workspaceDir, preset.workspaceFiles);
     console.log(
       pc.green(`OK Workspace files copied: ${preset.workspaceFiles.join(', ')}`)
@@ -444,6 +501,10 @@ export async function applyCommand(
   }
 
   if (preset.skills?.length) {
+    logVerbose(
+      verbose,
+      `Installing ${preset.skills.length} skill(s) from ${path.join(presetDir, 'skills')}`
+    );
     const installed = await copySkills(presetDir, preset.skills, {
       force: options.force,
     });
@@ -453,9 +514,11 @@ export async function applyCommand(
   }
 
   if (process.platform === 'darwin') {
+    logVerbose(verbose, 'Checking Node PATH fix for macOS');
     await fixNodePathIfNeeded();
   }
 
+  logVerbose(verbose, `Apply flow completed for preset '${preset.name}'`);
   console.log(pc.green(`\nOK Preset '${preset.name}' applied.`));
   console.log(
     pc.bold(pc.yellow("Run 'openclaw gateway restart' to activate changes."))
