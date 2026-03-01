@@ -15,8 +15,8 @@ import {
 } from '../core/json5-utils';
 import { migrateLegacyKeys } from '../core/legacy-migration';
 import { deepMerge } from '../core/merge';
-import { assertValidPresetName } from '../core/preset-name';
 import { loadPreset } from '../core/preset-loader';
+import { assertValidPresetName } from '../core/preset-name';
 import { cloneToCache, isGitHubRef, parseGitHubRef } from '../core/remote';
 import { filterSensitiveFields } from '../core/sensitive-filter';
 import { copySkills } from '../core/skills';
