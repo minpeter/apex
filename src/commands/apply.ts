@@ -6,7 +6,7 @@ import pc from 'picocolors';
 
 import { createBackup, createWorkspaceBackup } from '../core/backup';
 import { resolveOpenClawPaths } from '../core/config-path';
-import { WORKSPACE_FILES } from '../core/constants';
+import { PRESERVE_IF_SET_FIELDS, WORKSPACE_FILES } from '../core/constants';
 import { fixNodePathIfNeeded } from '../core/fix-node-path';
 import {
   isFileNotFoundError,
@@ -197,12 +197,65 @@ async function removeWorkspaceFiles(workspaceDir: string): Promise<void> {
   }
 }
 
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+  const parts = path.split('.');
+  let current: unknown = obj;
+  for (const part of parts) {
+    if (
+      current === null ||
+      current === undefined ||
+      typeof current !== 'object'
+    ) {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
+function setNestedValue(
+  obj: Record<string, unknown>,
+  path: string,
+  value: unknown
+): void {
+  const parts = path.split('.');
+  let current: Record<string, unknown> = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (
+      !(part in current) ||
+      typeof current[part] !== 'object' ||
+      current[part] === null
+    ) {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+  const lastPart = parts.at(-1);
+  if (lastPart !== undefined) {
+    current[lastPart] = value;
+  }
+}
+
 function buildMergedConfig(
   currentConfig: Record<string, unknown>,
   preset: PresetManifest
-): { applied: string[]; mergedConfig: Record<string, unknown> } {
+): {
+  applied: string[];
+  mergedConfig: Record<string, unknown>;
+  preserved: string[];
+} {
   if (!hasPresetConfig(preset)) {
-    return { applied: [], mergedConfig: currentConfig };
+    return { applied: [], mergedConfig: currentConfig, preserved: [] };
+  }
+
+  // Save user-set values that should not be overwritten
+  const savedValues = new Map<string, unknown>();
+  for (const field of PRESERVE_IF_SET_FIELDS) {
+    const existing = getNestedValue(currentConfig, field);
+    if (existing !== undefined) {
+      savedValues.set(field, existing);
+    }
   }
 
   const filteredPresetConfig = filterSensitiveFields(
@@ -210,7 +263,18 @@ function buildMergedConfig(
   );
   const rawMerged = deepMerge(currentConfig, filteredPresetConfig);
   const { config: mergedConfig, applied } = migrateLegacyKeys(rawMerged);
-  return { applied, mergedConfig };
+
+  // Restore preserved values
+  const preserved: string[] = [];
+  for (const [field, value] of savedValues) {
+    const newValue = getNestedValue(mergedConfig, field);
+    if (newValue !== value) {
+      setNestedValue(mergedConfig, field, value);
+      preserved.push(field);
+    }
+  }
+
+  return { applied, mergedConfig, preserved };
 }
 
 function printDryRunInfo(preset: PresetManifest): void {
@@ -262,9 +326,17 @@ export async function applyCommand(
     );
   }
 
-  const { applied, mergedConfig } = buildMergedConfig(currentConfig, preset);
+  const { applied, mergedConfig, preserved } = buildMergedConfig(
+    currentConfig,
+    preset
+  );
   if (applied.length > 0) {
     console.log(pc.dim(`Legacy key migration: ${applied.join(', ')}`));
+  }
+  if (preserved.length > 0) {
+    console.log(
+      pc.dim(`Preserved existing user settings: ${preserved.join(', ')}`)
+    );
   }
 
   if (options.dryRun) {

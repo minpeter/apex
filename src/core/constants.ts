@@ -12,6 +12,17 @@ export const SENSITIVE_FIELDS = [
   'channels.*.token',
 ] as const;
 
+/**
+ * Config paths that should not be overwritten by preset apply
+ * when the user has already set them. This prevents silent model
+ * drift when applying a preset to an existing configuration.
+ */
+export const PRESERVE_IF_SET_FIELDS = [
+  'agents.defaults.model.primary',
+  'agents.defaults.model.secondary',
+  'agents.defaults.model.fast',
+] as const;
+
 export const WORKSPACE_FILES = [
   'AGENTS.md',
   'SOUL.md',
