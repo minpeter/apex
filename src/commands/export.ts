@@ -69,14 +69,12 @@ export async function exportCommand(
     workspaceFiles: [],
   };
 
-  // Save preset (creates dir + writes preset.json5)
-  await savePreset(presetDir, manifest);
+  await fs.mkdir(presetDir, { recursive: true });
 
   // Copy workspace MD files
   const copiedFiles = await exportWorkspaceFiles(workspaceDir, presetDir);
   manifest.workspaceFiles = copiedFiles;
 
-  // Update manifest with workspace files list
   await savePreset(presetDir, manifest);
 
   console.log(pc.green(`\n✓ Preset '${name}' exported to: ${presetDir}`));
