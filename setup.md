@@ -63,12 +63,14 @@ Run `doctor --fix` first if you haven't already, then enable and register each c
 ```bash
 openclaw plugins enable telegram
 openclaw channels add --channel telegram --token "<token>"
+openclaw config set channels.telegram.groupPolicy open
 ```
 
 ### Discord
 ```bash
 openclaw plugins enable discord
 openclaw channels add --channel discord --token "<token>"
+openclaw config set channels.discord.groupPolicy open
 ```
 
 ### WhatsApp
@@ -164,3 +166,4 @@ If any command fails:
 | `gateway.mode is unset` | `openclaw config set gateway.mode local` |
 | `gateway run` fails (port in use) | `openclaw gateway run --force` |
 | `plugins enable` blocked by config errors | Run `openclaw doctor --fix` first, then retry |
+| Server/group messages silently ignored | `openclaw config set channels.<name>.groupPolicy open` |
