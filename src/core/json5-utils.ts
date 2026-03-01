@@ -81,6 +81,23 @@ export async function writeJson5(
   await fs.writeFile(filePath, content, 'utf-8');
 }
 
+/**
+ * Strip JSON5 string literals so comment markers inside strings are ignored.
+ */
+const JSON5_STRING_RE = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+
+function stripJson5Strings(content: string): string {
+  return content.replace(JSON5_STRING_RE, '""');
+}
+
+/**
+ * Detect JSON5 comments (// or /* ... *​/) outside of string literals.
+ */
+export function hasJson5Comments(content: string): boolean {
+  const stripped = stripJson5Strings(content);
+  return stripped.includes('//') || stripped.includes('/*');
+}
+
 export function parseJson5(content: string): Record<string, unknown> {
   if (content.trim() === '') {
     return {};

@@ -231,10 +231,12 @@ describe('applyCommand', () => {
   test('--dry-run shows changes without writing', async () => {
     const env = await createTempEnv('openclaw-apply-dry-run-');
 
-    const originalConfig = {
-      identity: { name: 'DryRunOriginal' },
-    };
-    await writeConfig(env.configPath, originalConfig);
+    const originalConfig = { identity: { name: 'DryRunOriginal' } };
+    await fs.writeFile(
+      env.configPath,
+      "{\n  // keep this comment\n  identity: { name: 'DryRunOriginal' },\n}\n",
+      'utf-8'
+    );
 
     await writeUserPreset(env.presetsDir, 'dry-run-preset', {
       name: 'dry-run-preset',
@@ -262,6 +264,35 @@ describe('applyCommand', () => {
     const combined = logs.join('\n');
     expect(combined).toContain('DRY RUN');
     expect(combined).toContain('dry-run-preset');
+    expect(combined).toContain('Dry-run note: detected JSON5 comments');
+    expect(combined).toContain('remove those comments');
+  });
+
+  test('warns when apply rewrites existing JSON5 comments', async () => {
+    const env = await createTempEnv('openclaw-apply-comment-warning-');
+
+    await fs.writeFile(
+      env.configPath,
+      "{\n  // comment to preserve manually\n  identity: { name: 'Before' },\n}\n",
+      'utf-8'
+    );
+
+    await writeUserPreset(env.presetsDir, 'comment-warning-preset', {
+      name: 'comment-warning-preset',
+      description: 'Comment warning preset',
+      version: '1.0.0',
+      config: {
+        identity: { name: 'After' },
+      },
+    });
+
+    const logs = await captureLogs(async () => {
+      await applyCommand('comment-warning-preset', { noBackup: true });
+    });
+
+    const combined = logs.join('\n');
+    expect(combined).toContain('Warning: detected JSON5 comments');
+    expect(combined).toContain('removes those comments');
   });
 
   test('filters sensitive fields from preset config before merge', async () => {
