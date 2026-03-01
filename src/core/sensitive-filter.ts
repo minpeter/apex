@@ -15,24 +15,48 @@ const SECRET_VALUE_PATTERNS = [
 
 function matchesPattern(path: string[], pattern: string): boolean {
   const patternParts = pattern.split('.');
+  const memo = new Map<string, boolean>();
 
-  if (path.length !== patternParts.length) {
+  function match(pathIndex: number, patternIndex: number): boolean {
+    const key = `${pathIndex}:${patternIndex}`;
+    const cached = memo.get(key);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    if (patternIndex === patternParts.length) {
+      const isMatch = pathIndex === path.length;
+      memo.set(key, isMatch);
+      return isMatch;
+    }
+
+    const patternPart = patternParts[patternIndex];
+
+    if (patternPart === '**') {
+      const isMatch =
+        match(pathIndex, patternIndex + 1) ||
+        (pathIndex < path.length && match(pathIndex + 1, patternIndex));
+      memo.set(key, isMatch);
+      return isMatch;
+    }
+
+    if (pathIndex >= path.length) {
+      memo.set(key, false);
+      return false;
+    }
+
+    if (patternPart === '*' || path[pathIndex] === patternPart) {
+      const isMatch = match(pathIndex + 1, patternIndex + 1);
+      memo.set(key, isMatch);
+      return isMatch;
+    }
+
+    memo.set(key, false);
     return false;
   }
 
-  for (let index = 0; index < patternParts.length; index += 1) {
-    const patternPart = patternParts[index];
-
-    if (patternPart === '*') {
-      continue;
-    }
-
-    if (path[index] !== patternPart) {
-      return false;
-    }
-  }
-
-  return true;
+  return match(0, 0);
 }
 
 function cloneValue(value: unknown): unknown {
