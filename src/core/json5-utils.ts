@@ -3,7 +3,6 @@ import JSON5 from 'json5';
 
 import type { ConfigSnapshot } from './types';
 
-
 function ensureObjectRoot(
   parsed: unknown,
   errorMessage: string
