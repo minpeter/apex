@@ -7,6 +7,7 @@ import { cloneToCache, isGitHubRef, parseGitHubRef } from '../remote';
 
 const tempDirs: string[] = [];
 const INVALID_GITHUB_REFERENCE_PATTERN = /Invalid GitHub reference/;
+const INVALID_GITHUB_OWNER_REPO_PATTERN = /Invalid GitHub owner\/repo/;
 const FAILED_TO_CLONE_PATTERN = /Failed to clone/;
 
 afterEach(async () => {
@@ -114,6 +115,20 @@ describe('parseGitHubRef', () => {
 });
 
 describe('cloneToCache', () => {
+  test('throws on invalid owner characters', async () => {
+    const presetsDir = await makeTempPresetsDir();
+    await expect(
+      cloneToCache('minpeter!', 'demo-researcher', presetsDir)
+    ).rejects.toThrow(INVALID_GITHUB_OWNER_REPO_PATTERN);
+  });
+
+  test('throws on invalid repo characters', async () => {
+    const presetsDir = await makeTempPresetsDir();
+    await expect(
+      cloneToCache('minpeter', 'demo-researcher;rm', presetsDir)
+    ).rejects.toThrow(INVALID_GITHUB_OWNER_REPO_PATTERN);
+  });
+
   test('clones real repo to cache directory', async () => {
     const presetsDir = await makeTempPresetsDir();
     const cachePath = await cloneToCache(

@@ -5,6 +5,15 @@ import path from 'node:path';
 const GITHUB_OWNER_REPO_REGEX = /^[a-zA-Z0-9._-]+$/;
 const TRAILING_SLASH_PATTERN = /\/+$/;
 
+function hasValidGitHubOwnerRepo(owner: string, repo: string): boolean {
+  return (
+    owner.length > 0 &&
+    repo.length > 0 &&
+    GITHUB_OWNER_REPO_REGEX.test(owner) &&
+    GITHUB_OWNER_REPO_REGEX.test(repo)
+  );
+}
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -90,9 +99,7 @@ export function parseGitHubRef(input: string): { owner: string; repo: string } {
     throw new Error(errorMessage);
   }
 
-  if (
-    !(GITHUB_OWNER_REPO_REGEX.test(owner) && GITHUB_OWNER_REPO_REGEX.test(repo))
-  ) {
+  if (!hasValidGitHubOwnerRepo(owner, repo)) {
     throw new Error(errorMessage);
   }
 
@@ -105,6 +112,12 @@ export async function cloneToCache(
   presetsDir: string,
   options?: { force?: boolean }
 ): Promise<string> {
+  if (!hasValidGitHubOwnerRepo(owner, repo)) {
+    throw new Error(
+      `Invalid GitHub owner/repo: '${owner}/${repo}'. Only letters, numbers, '.', '_', and '-' are allowed.`
+    );
+  }
+
   const cachePath = path.join(presetsDir, `${owner}--${repo}`);
   const cacheExists = await fs
     .stat(cachePath)
