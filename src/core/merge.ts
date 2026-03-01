@@ -6,7 +6,10 @@ function pathToString(path: string[]): string {
   return path.length === 0 ? '<root>' : path.join('.');
 }
 
-function throwCircularReferenceError(side: 'base' | 'override', path: string[]) {
+function throwCircularReferenceError(
+  side: 'base' | 'override',
+  path: string[]
+) {
   throw new Error(
     `Circular reference detected in deepMerge ${side} at ${pathToString(path)}`
   );
@@ -45,7 +48,10 @@ function deepMergeInternal(
     }
 
     if (isPlainObject(overrideVal) && isPlainObject(baseVal)) {
-      result[key] = deepMergeInternal(baseVal, overrideVal, seen, [...path, key]);
+      result[key] = deepMergeInternal(baseVal, overrideVal, seen, [
+        ...path,
+        key,
+      ]);
     } else {
       result[key] = overrideVal;
     }
