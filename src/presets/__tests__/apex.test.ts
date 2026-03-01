@@ -63,6 +63,7 @@ describe('apex preset', () => {
       'prompt-guard',
       'tmux-opencode',
       'agent-browser',
+      'image-gen',
     ]);
   });
 
