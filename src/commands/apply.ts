@@ -7,7 +7,11 @@ import pc from 'picocolors';
 import { createBackup, createWorkspaceBackup } from '../core/backup';
 import { resolveOpenClawPaths } from '../core/config-path';
 import { WORKSPACE_FILES } from '../core/constants';
-import { readJson5, writeJson5 } from '../core/json5-utils';
+import {
+  isFileNotFoundError,
+  readJson5,
+  writeJson5,
+} from '../core/json5-utils';
 import { migrateLegacyKeys } from '../core/legacy-migration';
 import { deepMerge } from '../core/merge';
 import { loadPreset } from '../core/preset-loader';
@@ -32,6 +36,12 @@ interface ApplyOptions {
 interface ResolvedPreset {
   preset: PresetManifest;
   presetDir: string;
+}
+
+function isPresetNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Error && error.message.startsWith('Preset not found:')
+  );
 }
 
 function resolveBuiltinPresetDir(presetName: string): string {
@@ -59,9 +69,15 @@ async function resolvePreset(
   }
 
   const userPresetPath = path.join(presetsDir, presetName);
-  const userPreset = await loadPreset(userPresetPath)
-    .then((preset) => ({ preset, presetDir: userPresetPath }))
-    .catch(() => null);
+  let userPreset: ResolvedPreset | null = null;
+  try {
+    const preset = await loadPreset(userPresetPath);
+    userPreset = { preset, presetDir: userPresetPath };
+  } catch (error) {
+    if (!isPresetNotFoundError(error)) {
+      throw error;
+    }
+  }
 
   if (userPreset) {
     return userPreset;
@@ -92,7 +108,11 @@ async function loadCurrentConfig(configPath: string): Promise<{
       config: snapshot.parsed,
       exists: true,
     };
-  } catch {
+  } catch (error) {
+    if (!isFileNotFoundError(error)) {
+      throw error;
+    }
+
     return {
       config: {},
       exists: false,

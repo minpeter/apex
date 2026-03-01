@@ -25,9 +25,9 @@ Prerequisites: [Bun](https://bun.sh)
 1. **List** available presets: `oh-my-openclaw list`
 2. **Diff** a preset against your current config: `oh-my-openclaw diff apex`
 3. **Apply** the preset: `oh-my-openclaw apply apex`
-6. **Apply** a preset from GitHub: `oh-my-openclaw apply minpeter/demo-researcher`
 4. **Install** apex quickly: `oh-my-openclaw install`
 5. **Export** your current setup as a new preset: `oh-my-openclaw export my-custom-setup`
+6. **Apply** a preset from GitHub: `oh-my-openclaw apply minpeter/demo-researcher`
 
 ## Commands
 
@@ -110,7 +110,7 @@ To prevent accidental exposure of secrets, certain fields are filtered during ex
 - `channels.*.botToken`, `channels.*.token`
 
 ### Automatic Backups
-Before applying any changes, oh-my-openclaw automatically creates a timestamped backup of your `.openclaw` directory in `~/.openclaw/backups/`.
+Before applying changes, oh-my-openclaw creates timestamped backups in `~/.openclaw/oh-my-openclaw/backups/` (for `openclaw.json`, plus workspace backups when workspace files are replaced).
 
 ## Creating Custom Presets
 Presets are stored in `~/.openclaw/oh-my-openclaw/`. You can create them manually by making a directory with a `preset.json5` file and any accompanying markdown files (`AGENTS.md`, `SOUL.md`, etc.).

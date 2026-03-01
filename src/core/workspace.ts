@@ -5,6 +5,14 @@ import { WORKSPACE_FILES } from './constants';
 const SKILLS_DIRNAME = 'skills';
 const SKILL_ENTRY_FILENAME = 'SKILL.md';
 
+function isErrnoCode(error: unknown, code: string): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  return (error as { code?: unknown }).code === code;
+}
+
 // Reads agents.defaults.workspace from parsed config, falls back to {stateDir}/workspace
 export function resolveWorkspaceDir(
   config: Record<string, unknown>,
@@ -26,7 +34,11 @@ export async function listWorkspaceFiles(
     try {
       await fs.access(filePath);
       existing.push(filename);
-    } catch {
+    } catch (error) {
+      if (!isErrnoCode(error, 'ENOENT')) {
+        throw error;
+      }
+
       // File doesn't exist, skip
     }
   }
@@ -40,7 +52,11 @@ export async function listWorkspaceSkills(rootDir: string): Promise<string[]> {
 
   try {
     entries = await fs.readdir(skillsDir, { withFileTypes: true });
-  } catch {
+  } catch (error) {
+    if (!isErrnoCode(error, 'ENOENT')) {
+      throw error;
+    }
+
     return [];
   }
 
@@ -51,10 +67,15 @@ export async function listWorkspaceSkills(rootDir: string): Promise<string[]> {
     }
 
     const skillEntry = path.join(skillsDir, entry.name, SKILL_ENTRY_FILENAME);
-    const hasSkillEntry = await fs
-      .access(skillEntry)
-      .then(() => true)
-      .catch(() => false);
+    let hasSkillEntry = false;
+    try {
+      await fs.access(skillEntry);
+      hasSkillEntry = true;
+    } catch (error) {
+      if (!isErrnoCode(error, 'ENOENT')) {
+        throw error;
+      }
+    }
 
     if (hasSkillEntry) {
       existing.push(entry.name);

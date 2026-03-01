@@ -6,6 +6,7 @@ import path from 'node:path';
 import { diffCommand } from '../diff';
 
 const ADDED_KEY_PATTERN = /identity|agents|tools/;
+const INVALID_PRESET_JSON_PATTERN = /Invalid JSON5 in .*preset\.json5:/;
 
 describe('diffCommand', () => {
   let output: string[] = [];
@@ -198,5 +199,84 @@ describe('diffCommand', () => {
     await expect(diffCommand('nonexistent-preset-xyz')).rejects.toThrow(
       "Preset 'nonexistent-preset-xyz' not found."
     );
+  });
+
+  test('throws on invalid current config JSON5', async () => {
+    const configPath = path.join(tempStateDir, 'openclaw.json');
+    await fs.writeFile(configPath, '{ invalid', 'utf-8');
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
+
+    await expect(diffCommand('apex')).rejects.toThrow(
+      `Invalid JSON5 in ${configPath}:`
+    );
+  });
+
+  test('throws when user preset exists but manifest is invalid', async () => {
+    const userPresetDir = path.join(
+      tempStateDir,
+      'oh-my-openclaw',
+      'presets',
+      'apex'
+    );
+    await fs.mkdir(userPresetDir, { recursive: true });
+    await fs.writeFile(path.join(userPresetDir, 'preset.json5'), '{', 'utf-8');
+
+    const configPath = path.join(tempStateDir, 'openclaw.json');
+    await fs.writeFile(configPath, '{}', 'utf-8');
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
+
+    await expect(diffCommand('apex')).rejects.toThrow(
+      INVALID_PRESET_JSON_PATTERN
+    );
+  });
+
+  test('redacts sensitive values from diff output', async () => {
+    const presetDir = path.join(
+      tempStateDir,
+      'oh-my-openclaw',
+      'presets',
+      'sensitive-diff'
+    );
+    await fs.mkdir(presetDir, { recursive: true });
+    await fs.writeFile(
+      path.join(presetDir, 'preset.json5'),
+      JSON.stringify({
+        name: 'sensitive-diff',
+        description: 'Sensitive redaction test',
+        version: '1.0.0',
+        config: {
+          identity: { name: 'NewBot' },
+          env: { OPENAI_API_KEY: 'preset-secret' },
+          gateway: { auth: { token: 'preset-token' } },
+          models: { providers: { custom: { apiKey: 'preset-model-key' } } },
+        },
+      }),
+      'utf-8'
+    );
+
+    const configPath = path.join(tempStateDir, 'openclaw.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        identity: { name: 'OldBot' },
+        env: { OPENAI_API_KEY: 'current-secret' },
+        gateway: { auth: { token: 'current-token' } },
+        models: { providers: { custom: { apiKey: 'current-model-key' } } },
+      }),
+      'utf-8'
+    );
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
+
+    await diffCommand('sensitive-diff', { json: true });
+
+    const combined = output.join('\n');
+    expect(combined).not.toContain('current-secret');
+    expect(combined).not.toContain('preset-secret');
+    expect(combined).not.toContain('current-token');
+    expect(combined).not.toContain('preset-token');
+    expect(combined).not.toContain('current-model-key');
+    expect(combined).not.toContain('preset-model-key');
+    expect(combined).toContain('OldBot');
+    expect(combined).toContain('NewBot');
   });
 });

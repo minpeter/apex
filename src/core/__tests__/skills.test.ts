@@ -7,6 +7,7 @@ import { copySkills, promptOverwrite } from '../skills';
 
 const tempDirs: string[] = [];
 const MISSING_PRESET_SKILL_PATTERN = /not found in preset/;
+const INVALID_SKILL_NAME_PATTERN = /Invalid skill name/;
 
 async function createTempPreset(
   skillName: string,
@@ -205,6 +206,17 @@ describe('copySkills', () => {
     await expect(
       copySkills(presetDir, ['nonexistent-skill'], { targetBaseDir })
     ).rejects.toThrow(MISSING_PRESET_SKILL_PATTERN);
+  });
+
+  test('rejects invalid skill names that attempt path traversal', async () => {
+    const presetDir = await createTempPreset('real-skill', {
+      'SKILL.md': '# Exists',
+    });
+    const targetBaseDir = await createTempTarget();
+
+    await expect(
+      copySkills(presetDir, ['../outside'], { targetBaseDir })
+    ).rejects.toThrow(INVALID_SKILL_NAME_PATTERN);
   });
 
   test('installs multiple skills in order', async () => {

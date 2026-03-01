@@ -9,6 +9,24 @@ export interface CopySkillsOptions {
   targetBaseDir?: string;
 }
 
+const SKILL_NAME_PATTERN = /^[A-Za-z0-9._-]+$/;
+
+function isErrnoCode(error: unknown, code: string): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  return (error as { code?: unknown }).code === code;
+}
+
+function validateSkillName(name: string): void {
+  if (name === '.' || name === '..' || !SKILL_NAME_PATTERN.test(name)) {
+    throw new Error(
+      `Invalid skill name '${name}'. Use only letters, numbers, dot, underscore, and hyphen.`
+    );
+  }
+}
+
 function isYes(input: string): boolean {
   return input.trim().toLowerCase() === 'y';
 }
@@ -38,14 +56,26 @@ function sourceSkillDirExists(sourceDir: string): Promise<boolean> {
   return fs
     .stat(sourceDir)
     .then((stats) => stats.isDirectory())
-    .catch(() => false);
+    .catch((error) => {
+      if (isErrnoCode(error, 'ENOENT')) {
+        return false;
+      }
+
+      throw error;
+    });
 }
 
 function targetSkillExists(targetDir: string): Promise<boolean> {
   return fs
     .stat(targetDir)
     .then(() => true)
-    .catch(() => false);
+    .catch((error) => {
+      if (isErrnoCode(error, 'ENOENT')) {
+        return false;
+      }
+
+      throw error;
+    });
 }
 
 function skipExistingSkill(name: string): void {
@@ -96,6 +126,8 @@ export async function copySkills(
   const installed: string[] = [];
 
   for (const name of skills) {
+    validateSkillName(name);
+
     const srcDir = path.join(sourceBaseDir, name);
     const destDir = path.join(targetBaseDir, name);
     const sourceExists = await sourceSkillDirExists(srcDir);

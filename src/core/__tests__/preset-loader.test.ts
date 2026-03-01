@@ -70,6 +70,17 @@ describe('loadPreset', () => {
     );
   });
 
+  test('surfaces invalid JSON5 parse errors from manifest', async () => {
+    const presetsRoot = await createTempDir('invalid-preset-json5');
+    const presetDir = path.join(presetsRoot, 'broken-preset');
+    await fs.mkdir(presetDir, { recursive: true });
+    await fs.writeFile(path.join(presetDir, 'preset.json5'), '{', 'utf-8');
+
+    await expect(loadPreset(presetDir)).rejects.toThrow(
+      `Invalid JSON5 in ${path.join(presetDir, 'preset.json5')}:`
+    );
+  });
+
   test('throws on missing required field: description', async () => {
     const presetsRoot = await createTempDir('invalid-preset-desc');
     const presetDir = path.join(presetsRoot, 'bad-preset');
@@ -205,6 +216,25 @@ describe('listPresets', () => {
 
     const result = await listPresets(presetsRoot, []);
 
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('valid-preset');
+  });
+
+  test('skips malformed preset manifests during listing', async () => {
+    const presetsRoot = await createTempDir('skip-malformed');
+
+    const validDir = path.join(presetsRoot, 'valid-preset');
+    await writePresetManifest(validDir, {
+      name: 'valid-preset',
+      description: 'Valid',
+      version: '1.0.0',
+    });
+
+    const malformedDir = path.join(presetsRoot, 'malformed-preset');
+    await fs.mkdir(malformedDir, { recursive: true });
+    await fs.writeFile(path.join(malformedDir, 'preset.json5'), '{', 'utf-8');
+
+    const result = await listPresets(presetsRoot, []);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('valid-preset');
   });

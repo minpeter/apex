@@ -3,12 +3,48 @@ import JSON5 from 'json5';
 
 import type { ConfigSnapshot } from './types';
 
+function ensureObjectRoot(
+  parsed: unknown,
+  errorMessage: string
+): Record<string, unknown> {
+  if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+    throw new Error(errorMessage);
+  }
+
+  return parsed as Record<string, unknown>;
+}
+
+function extractErrnoCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null) {
+    return undefined;
+  }
+
+  const maybeCode = (error as { code?: unknown }).code;
+  if (typeof maybeCode === 'string') {
+    return maybeCode;
+  }
+
+  return undefined;
+}
+
+export function isFileNotFoundError(error: unknown): boolean {
+  if (extractErrnoCode(error) === 'ENOENT') {
+    return true;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return extractErrnoCode(error.cause) === 'ENOENT';
+}
+
 export async function readJson5(filePath: string): Promise<ConfigSnapshot> {
   let raw: string;
   try {
     raw = await fs.readFile(filePath, 'utf-8');
-  } catch {
-    throw new Error(`Cannot read file: ${filePath}`);
+  } catch (error) {
+    throw new Error(`Cannot read file: ${filePath}`, { cause: error });
   }
 
   const trimmed = raw.trim();
@@ -16,7 +52,7 @@ export async function readJson5(filePath: string): Promise<ConfigSnapshot> {
     return { raw, parsed: {}, path: filePath };
   }
 
-  let parsed: Record<string, unknown>;
+  let parsed: unknown;
   try {
     parsed = JSON5.parse(trimmed);
   } catch (err) {
@@ -25,7 +61,14 @@ export async function readJson5(filePath: string): Promise<ConfigSnapshot> {
     );
   }
 
-  return { raw, parsed, path: filePath };
+  return {
+    raw,
+    parsed: ensureObjectRoot(
+      parsed,
+      `Invalid JSON5 in ${filePath}: root value must be an object`
+    ),
+    path: filePath,
+  };
 }
 
 export async function writeJson5(
@@ -40,7 +83,12 @@ export function parseJson5(content: string): Record<string, unknown> {
   if (content.trim() === '') {
     return {};
   }
-  return JSON5.parse(content);
+
+  const parsed = JSON5.parse(content);
+  return ensureObjectRoot(
+    parsed,
+    'Invalid JSON5 content: root value must be an object'
+  );
 }
 
 export function stringifyJson5(data: Record<string, unknown>): string {

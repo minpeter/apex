@@ -3,7 +3,7 @@ import path from 'node:path';
 import pc from 'picocolors';
 
 import { resolveOpenClawPaths } from '../core/config-path';
-import { readJson5 } from '../core/json5-utils';
+import { isFileNotFoundError, readJson5 } from '../core/json5-utils';
 import { savePreset } from '../core/preset-loader';
 import { filterSensitiveFields } from '../core/sensitive-filter';
 import type { PresetManifest } from '../core/types';
@@ -43,7 +43,7 @@ export async function exportCommand(
     const snapshot = await readJson5(paths.configPath);
     currentConfig = snapshot.parsed;
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith('Cannot read file:')) {
+    if (isFileNotFoundError(err)) {
       console.log(
         pc.yellow('⚠ No OpenClaw config found. Exporting empty config.')
       );

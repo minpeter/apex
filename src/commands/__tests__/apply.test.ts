@@ -17,6 +17,7 @@ interface TempEnv {
 const tempDirs: string[] = [];
 const originalEnv = { ...process.env };
 const FAILED_TO_CLONE_PATTERN = /Failed to clone/;
+const INVALID_PRESET_JSON_PATTERN = /Invalid JSON5 in .*preset\.json5:/;
 
 async function createTempEnv(prefix: string): Promise<TempEnv> {
   const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
@@ -415,6 +416,44 @@ describe('applyCommand', () => {
 
     expect(await fileExists(path.join(env.workspaceDir, 'AGENTS.md'))).toBe(
       false
+    );
+  });
+
+  test('throws when existing config is invalid JSON5', async () => {
+    const env = await createTempEnv('openclaw-apply-invalid-config-');
+
+    await fs.writeFile(env.configPath, '{ invalid', 'utf-8');
+    await writeUserPreset(env.presetsDir, 'valid-preset', {
+      name: 'valid-preset',
+      description: 'Valid preset used against invalid config',
+      version: '1.0.0',
+      config: {
+        identity: { name: 'ShouldNotApply' },
+      },
+    });
+
+    await expect(applyCommand('valid-preset')).rejects.toThrow(
+      `Invalid JSON5 in ${env.configPath}:`
+    );
+
+    const raw = await fs.readFile(env.configPath, 'utf-8');
+    expect(raw).toBe('{ invalid');
+  });
+
+  test('throws when user preset exists but manifest is invalid', async () => {
+    const env = await createTempEnv('openclaw-apply-invalid-user-preset-');
+
+    await writeConfig(env.configPath, { identity: { name: 'BaseBot' } });
+    const brokenPresetDir = path.join(env.presetsDir, 'apex');
+    await fs.mkdir(brokenPresetDir, { recursive: true });
+    await fs.writeFile(
+      path.join(brokenPresetDir, 'preset.json5'),
+      '{',
+      'utf-8'
+    );
+
+    await expect(applyCommand('apex')).rejects.toThrow(
+      INVALID_PRESET_JSON_PATTERN
     );
   });
 

@@ -81,6 +81,21 @@ describe('json5-utils', () => {
     expect(parseJson5(snapshot.raw)).toEqual({});
   });
 
+  test('throws when JSON5 root is not an object', async () => {
+    const filePath = await createTempPath('non-object-root.json5');
+    await fs.writeFile(filePath, '[]', 'utf-8');
+
+    await expect(readJson5(filePath)).rejects.toThrow(
+      `Invalid JSON5 in ${filePath}: root value must be an object`
+    );
+  });
+
+  test('parseJson5 throws when root value is not an object', () => {
+    expect(() => parseJson5('123')).toThrow(
+      'Invalid JSON5 content: root value must be an object'
+    );
+  });
+
   test('parseJson5 and stringifyJson5 round-trip simple object', () => {
     const data = { foo: 'bar', count: 2 };
     const stringified = stringifyJson5(data);

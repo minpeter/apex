@@ -56,7 +56,7 @@ Notes:
 
 ## Step 4 — Register messenger channel(s)
 
-Run `doctor --fix` first if you haven't already, then enable and register each channel.
+Enable and register each channel. If a command is blocked by config validation errors, run `openclaw doctor --fix` and retry.
 
 ### Telegram
 ```bash

@@ -1,9 +1,10 @@
 import path from 'node:path';
 import pc from 'picocolors';
 import { resolveOpenClawPaths } from '../core/config-path';
-import { readJson5 } from '../core/json5-utils';
+import { isFileNotFoundError, readJson5 } from '../core/json5-utils';
 import { migrateLegacyKeys } from '../core/legacy-migration';
 import { loadPreset } from '../core/preset-loader';
+import { filterSensitiveFields } from '../core/sensitive-filter';
 import type { PresetManifest } from '../core/types';
 import { listWorkspaceFiles, resolveWorkspaceDir } from '../core/workspace';
 import { getBuiltinPresets } from '../presets/index';
@@ -17,6 +18,50 @@ interface DiffEntry {
   path: string;
   presetValue?: unknown;
   type: 'added' | 'changed' | 'removed';
+}
+
+function isPresetNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Error && error.message.startsWith('Preset not found:')
+  );
+}
+
+async function resolvePresetForDiff(
+  presetName: string,
+  presetsDir: string
+): Promise<PresetManifest> {
+  const userPresetPath = path.join(presetsDir, presetName);
+  try {
+    return await loadPreset(userPresetPath);
+  } catch (error) {
+    if (!isPresetNotFoundError(error)) {
+      throw error;
+    }
+  }
+
+  const builtin = (await getBuiltinPresets()).find(
+    (p) => p.name === presetName
+  );
+  if (!builtin) {
+    throw new Error(`Preset '${presetName}' not found.`);
+  }
+
+  return builtin;
+}
+
+async function loadCurrentConfigForDiff(
+  configPath: string
+): Promise<Record<string, unknown>> {
+  try {
+    const snapshot = await readJson5(configPath);
+    return snapshot.parsed;
+  } catch (error) {
+    if (isFileNotFoundError(error)) {
+      return {};
+    }
+
+    throw error;
+  }
 }
 
 // Recursively compute diff between current and preset config
@@ -89,33 +134,16 @@ export async function diffCommand(
 ): Promise<void> {
   const paths = await resolveOpenClawPaths();
 
-  // Load preset
-  let preset: PresetManifest;
-  const userPresetPath = path.join(paths.presetsDir, presetName);
-  try {
-    preset = await loadPreset(userPresetPath);
-  } catch {
-    const builtin = (await getBuiltinPresets()).find(
-      (p) => p.name === presetName
-    );
-    if (!builtin) {
-      throw new Error(`Preset '${presetName}' not found.`);
-    }
-    preset = builtin;
-  }
-
-  // Read current config
-  let currentConfig: Record<string, unknown> = {};
-  try {
-    const snapshot = await readJson5(paths.configPath);
-    currentConfig = snapshot.parsed;
-  } catch {
-    // No config
-  }
+  const preset = await resolvePresetForDiff(presetName, paths.presetsDir);
+  const currentConfig = await loadCurrentConfigForDiff(paths.configPath);
 
   const rawPresetConfig = (preset.config ?? {}) as Record<string, unknown>;
-  const { config: presetConfig } = migrateLegacyKeys(rawPresetConfig);
-  const { config: normalizedCurrent } = migrateLegacyKeys(currentConfig);
+  const filteredPresetConfig = filterSensitiveFields(rawPresetConfig);
+  const filteredCurrentConfig = filterSensitiveFields(currentConfig);
+  const { config: presetConfig } = migrateLegacyKeys(filteredPresetConfig);
+  const { config: normalizedCurrent } = migrateLegacyKeys(
+    filteredCurrentConfig
+  );
   const configDiff = computeDiff(normalizedCurrent, presetConfig);
 
   // Workspace diff

@@ -1,8 +1,20 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { PRESET_MANIFEST_FILENAME } from './constants';
-import { readJson5, writeJson5 } from './json5-utils';
+import { isFileNotFoundError, readJson5, writeJson5 } from './json5-utils';
 import type { ConfigSnapshot, PresetManifest } from './types';
+
+function isSkippablePresetError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message.startsWith('Preset not found:') ||
+    error.message.startsWith('Preset missing required field:') ||
+    error.message.startsWith('Invalid JSON5 in ')
+  );
+}
 
 // Reads preset.json5 from a preset directory, validates required fields
 export async function loadPreset(presetPath: string): Promise<PresetManifest> {
@@ -11,8 +23,12 @@ export async function loadPreset(presetPath: string): Promise<PresetManifest> {
   let snapshot: ConfigSnapshot;
   try {
     snapshot = await readJson5(manifestPath);
-  } catch {
-    throw new Error(`Preset not found: ${manifestPath}`);
+  } catch (error) {
+    if (isFileNotFoundError(error)) {
+      throw new Error(`Preset not found: ${manifestPath}`);
+    }
+
+    throw error;
   }
 
   const manifest = snapshot.parsed as Partial<PresetManifest>;
@@ -49,12 +65,20 @@ export async function listPresets(
         try {
           const preset = await loadPreset(path.join(presetsDir, entry.name));
           userPresets.push(preset);
-        } catch {
+        } catch (error) {
+          if (!isSkippablePresetError(error)) {
+            throw error;
+          }
+
           // Skip invalid preset directories
         }
       }
     }
-  } catch {
+  } catch (error) {
+    if (!isFileNotFoundError(error)) {
+      throw error;
+    }
+
     // presetsDir doesn't exist, return only built-ins
   }
 
