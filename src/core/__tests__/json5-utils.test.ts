@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  hasJson5Comments,
   isFileNotFoundError,
   parseJson5,
   readJson5,
@@ -103,6 +104,32 @@ describe('json5-utils', () => {
     const stringified = stringifyJson5(data);
 
     expect(parseJson5(stringified)).toEqual(data);
+  });
+
+  describe('hasJson5Comments', () => {
+    test('returns true for line comments', () => {
+      expect(hasJson5Comments('{\n  // comment\n  name: "test"\n}')).toBe(
+        true
+      );
+    });
+
+    test('returns true for block comments', () => {
+      expect(
+        hasJson5Comments('{\n  /* block comment */\n  name: "test"\n}')
+      ).toBe(true);
+    });
+
+    test('ignores comment-like content inside strings', () => {
+      expect(
+        hasJson5Comments(
+          '{\n  url: "https://example.com",\n  pattern: "/*not-comment*/"\n}'
+        )
+      ).toBe(false);
+    });
+
+    test('returns false when no comments exist', () => {
+      expect(hasJson5Comments('{\n  name: "test"\n}')).toBe(false);
+    });
   });
 
   describe('isFileNotFoundError', () => {

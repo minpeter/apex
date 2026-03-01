@@ -3,6 +3,8 @@ import JSON5 from 'json5';
 
 import type { ConfigSnapshot } from './types';
 
+type Json5StringDelimiter = '"' | "'";
+
 function ensureObjectRoot(
   parsed: unknown,
   errorMessage: string
@@ -79,6 +81,65 @@ export async function writeJson5(
   // with openclaw gateway which may not handle unquoted keys
   const content = JSON.stringify(data, null, 2);
   await fs.writeFile(filePath, content, 'utf-8');
+}
+
+export function hasJson5Comments(content: string): boolean {
+  let inBlockComment = false;
+  let inLineComment = false;
+  let inString: Json5StringDelimiter | null = null;
+  let escaped = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const next = content[i + 1];
+
+    if (inLineComment) {
+      if (char === '\n' || char === '\r') {
+        inLineComment = false;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && next === '/') {
+        inBlockComment = false;
+        i++;
+      }
+      continue;
+    }
+
+    if (inString !== null) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+
+      if (char === inString) {
+        inString = null;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      inString = char;
+      continue;
+    }
+
+    if (char === '/' && next === '/') {
+      return true;
+    }
+
+    if (char === '/' && next === '*') {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function parseJson5(content: string): Record<string, unknown> {

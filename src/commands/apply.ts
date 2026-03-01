@@ -9,6 +9,7 @@ import { resolveOpenClawPaths } from '../core/config-path';
 import { PRESERVE_IF_SET_FIELDS, WORKSPACE_FILES } from '../core/constants';
 import { fixNodePathIfNeeded } from '../core/fix-node-path';
 import {
+  hasJson5Comments,
   isFileNotFoundError,
   readJson5,
   writeJson5,
@@ -102,12 +103,14 @@ async function resolvePreset(
 async function loadCurrentConfig(configPath: string): Promise<{
   config: Record<string, unknown>;
   exists: boolean;
+  hasJson5Comments: boolean;
 }> {
   try {
     const snapshot = await readJson5(configPath);
     return {
       config: snapshot.parsed,
       exists: true,
+      hasJson5Comments: hasJson5Comments(snapshot.raw),
     };
   } catch (error) {
     if (!isFileNotFoundError(error)) {
@@ -117,6 +120,7 @@ async function loadCurrentConfig(configPath: string): Promise<{
     return {
       config: {},
       exists: false,
+      hasJson5Comments: false,
     };
   }
 }
@@ -277,13 +281,57 @@ function buildMergedConfig(
   return { applied, mergedConfig, preserved };
 }
 
-function printDryRunInfo(preset: PresetManifest): void {
+function buildJson5CommentLossMessage(
+  configPath: string,
+  hasExistingJson5Comments: boolean,
+  dryRun: boolean
+): string {
+  if (dryRun) {
+    if (hasExistingJson5Comments) {
+      return `Dry-run note: detected JSON5 comments in ${configPath}. Applying this preset will rewrite the file as standard JSON and remove those comments.`;
+    }
+
+    return `Dry-run note: applying this preset rewrites ${configPath} as standard JSON. JSON5 comments are not preserved.`;
+  }
+
+  if (hasExistingJson5Comments) {
+    return `Warning: detected JSON5 comments in ${configPath}. Applying this preset rewrites the file as standard JSON and removes those comments.`;
+  }
+
+  return `Warning: applying this preset rewrites ${configPath} as standard JSON. JSON5 comments are not preserved.`;
+}
+
+function printDryRunInfo(
+  preset: PresetManifest,
+  options: {
+    configExists: boolean;
+    configHasJson5Comments: boolean;
+    configPath: string;
+  }
+): void {
   console.log(pc.bold(pc.yellow('DRY RUN - no files will be modified\n')));
   console.log(`Preset: ${pc.bold(preset.name)} (${preset.description})`);
   if (hasPresetConfig(preset)) {
     console.log(
       `Config changes: ${Object.keys(preset.config as Record<string, unknown>).length} top-level keys`
     );
+    if (options.configExists) {
+      console.log(
+        pc.yellow(
+          buildJson5CommentLossMessage(
+            options.configPath,
+            options.configHasJson5Comments,
+            true
+          )
+        )
+      );
+    } else {
+      console.log(
+        pc.yellow(
+          `Dry-run note: ${options.configPath} does not exist. Applying this preset will create it as standard JSON.`
+        )
+      );
+    }
   }
   if (preset.workspaceFiles?.length) {
     console.log(`Workspace files: ${preset.workspaceFiles.join(', ')}`);
@@ -308,6 +356,7 @@ export async function applyCommand(
   const configSnapshot = await loadCurrentConfig(paths.configPath);
   let currentConfig = configSnapshot.config;
   let configExists = configSnapshot.exists;
+  const configHasJson5Comments = configSnapshot.hasJson5Comments;
   const workspaceDir = resolveWorkspaceDir(currentConfig, paths.stateDir);
 
   if (options.clean && !options.dryRun) {
@@ -343,7 +392,11 @@ export async function applyCommand(
     if (options.clean) {
       console.log(pc.yellow('Mode: CLEAN INSTALL'));
     }
-    printDryRunInfo(preset);
+    printDryRunInfo(preset, {
+      configExists,
+      configHasJson5Comments,
+      configPath: paths.configPath,
+    });
     return;
   }
 
@@ -362,7 +415,11 @@ export async function applyCommand(
     if (configExists) {
       console.log(
         pc.yellow(
-          'Warning: JSON5 comments in your config will be lost (known MVP limitation).'
+          buildJson5CommentLossMessage(
+            paths.configPath,
+            configHasJson5Comments,
+            false
+          )
         )
       );
     } else {
