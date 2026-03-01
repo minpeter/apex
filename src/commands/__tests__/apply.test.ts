@@ -584,6 +584,15 @@ describe('applyCommand', () => {
       ).theme
     ).toBe('all-in-one power assistant');
   });
+
+  test('rejects invalid local preset names', async () => {
+    const invalidNames = ['', 'bad$name', 'bad name', 'bad\\name'];
+    for (const name of invalidNames) {
+      await expect(applyCommand(name)).rejects.toThrow(
+        `Invalid preset name '${name}'. Only letters, numbers, '_' and '-' are allowed.`
+      );
+    }
+  });
 });
 
 describe('remote apply', () => {

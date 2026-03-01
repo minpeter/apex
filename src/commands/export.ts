@@ -4,6 +4,7 @@ import pc from 'picocolors';
 
 import { resolveOpenClawPaths } from '../core/config-path';
 import { isFileNotFoundError, readJson5 } from '../core/json5-utils';
+import { assertValidPresetName } from '../core/preset-name';
 import { savePreset } from '../core/preset-loader';
 import { filterSensitiveFields } from '../core/sensitive-filter';
 import type { PresetManifest } from '../core/types';
@@ -19,6 +20,7 @@ export async function exportCommand(
   name: string,
   options: ExportOptions = {}
 ): Promise<void> {
+  assertValidPresetName(name);
   const paths = await resolveOpenClawPaths();
 
   // Check if preset already exists
