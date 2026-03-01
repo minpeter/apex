@@ -37,8 +37,10 @@
         'canvas',
       ],
     },
-    discord: {
-      allowBots: true,
+    channels: {
+      discord: {
+        allowBots: true,
+      },
     },
   },
   workspaceFiles: ['AGENTS.md', 'SOUL.md', 'TOOLS.md', 'USER.md', 'IDENTITY.md'],
