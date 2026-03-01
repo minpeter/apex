@@ -101,6 +101,15 @@ describe('exportCommand', () => {
     );
   });
 
+  test('rejects invalid preset names', async () => {
+    const invalidNames = ['', 'bad$name', 'bad name', 'bad/name', '../bad'];
+    for (const name of invalidNames) {
+      await expect(exportCommand(name)).rejects.toThrow(
+        `Invalid preset name '${name}'. Only letters, numbers, '_' and '-' are allowed.`
+      );
+    }
+  });
+
   test('--force overwrites existing preset', async () => {
     await exportCommand('force-test');
 
