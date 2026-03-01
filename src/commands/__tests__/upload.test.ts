@@ -293,7 +293,7 @@ describe('upload: uploadCommand error paths', () => {
 
   test('throws on invalid repo argument', async () => {
     const { uploadCommand } = await import('../upload');
-    await expect(uploadCommand('invalid-no-slash')).rejects.toThrow(
+    return expect(uploadCommand('invalid-no-slash')).rejects.toThrow(
       'Invalid GitHub repository'
     );
   });
