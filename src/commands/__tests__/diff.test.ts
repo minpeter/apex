@@ -71,6 +71,19 @@ describe('diffCommand', () => {
     expect(combined).toContain('Apex');
   });
 
+  test('--verbose prints detailed operation logs', async () => {
+    const configPath = path.join(tempStateDir, 'openclaw.json');
+    await fs.writeFile(configPath, '{}', 'utf-8');
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
+
+    await diffCommand('apex', { verbose: true });
+
+    const combined = output.join('\n');
+    expect(combined).toContain('[verbose]');
+    expect(combined).toContain('Resolved paths:');
+    expect(combined).toContain('Computed config diff');
+  });
+
   test('shows removed keys (null) in red with - prefix', async () => {
     // Create a custom preset with null value (meaning delete)
     const presetsDir = path.join(
@@ -138,6 +151,27 @@ describe('diffCommand', () => {
     const listChange = parsed.changes.find((c) => c.path === 'agents.list');
     expect(listChange).toBeDefined();
     expect(listChange?.type).toBe('changed');
+  });
+
+  test('--verbose with --json still emits parseable JSON on stdout', async () => {
+    const configPath = path.join(tempStateDir, 'openclaw.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ identity: { name: 'OldBot' } }),
+      'utf-8'
+    );
+    process.env.OPENCLAW_CONFIG_PATH = configPath;
+
+    await diffCommand('apex', { json: true, verbose: true });
+
+    const jsonOutput = output.join('\n');
+    const parsed = JSON.parse(jsonOutput) as {
+      changes: { path: string; type: string }[];
+      preset: string;
+    };
+
+    expect(parsed.preset).toBe('apex');
+    expect(Array.isArray(parsed.changes)).toBe(true);
   });
 
   test('reports workspace file differences', async () => {

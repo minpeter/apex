@@ -12,6 +12,7 @@ import { getBuiltinPresets } from '../presets/index';
 
 interface DiffOptions {
   json?: boolean;
+  verbose?: boolean;
 }
 
 interface DiffEntry {
@@ -19,6 +20,24 @@ interface DiffEntry {
   path: string;
   presetValue?: unknown;
   type: 'added' | 'changed' | 'removed';
+}
+
+function logVerbose(
+  enabled: boolean,
+  message: string,
+  options: { jsonOutput: boolean }
+): void {
+  if (!enabled) {
+    return;
+  }
+
+  const text = pc.dim(`[verbose] ${message}`);
+  if (options.jsonOutput) {
+    console.error(text);
+    return;
+  }
+
+  console.log(text);
 }
 
 function isPresetNotFoundError(error: unknown): boolean {
@@ -142,9 +161,19 @@ export async function diffCommand(
   presetName: string,
   options: DiffOptions = {}
 ): Promise<void> {
-  const paths = await resolveOpenClawPaths();
+  const verbose = Boolean(options.verbose);
+  const jsonOutput = Boolean(options.json);
 
+  const paths = await resolveOpenClawPaths();
+  logVerbose(
+    verbose,
+    `Resolved paths: config=${paths.configPath}, presets=${paths.presetsDir}, state=${paths.stateDir}`,
+    { jsonOutput }
+  );
+
+  logVerbose(verbose, `Resolving preset '${presetName}'`, { jsonOutput });
   const preset = await resolvePresetForDiff(presetName, paths.presetsDir);
+  logVerbose(verbose, `Loaded preset '${preset.name}'`, { jsonOutput });
   const currentConfig = await loadCurrentConfigForDiff(paths.configPath);
 
   const rawPresetConfig = (preset.config ?? {}) as Record<string, unknown>;
@@ -155,14 +184,27 @@ export async function diffCommand(
     filteredCurrentConfig
   );
   const configDiff = computeDiff(normalizedCurrent, presetConfig);
+  logVerbose(
+    verbose,
+    `Computed config diff with ${configDiff.length} change(s)`,
+    { jsonOutput }
+  );
 
   // Workspace diff
   const workspaceDir = resolveWorkspaceDir(currentConfig, paths.stateDir);
+  logVerbose(verbose, `Workspace directory resolved to ${workspaceDir}`, {
+    jsonOutput,
+  });
   const currentWsFiles = await listWorkspaceFiles(workspaceDir);
   const presetWsFiles = preset.workspaceFiles ?? [];
   const wsFilesToAdd = presetWsFiles.filter((f) => !currentWsFiles.includes(f));
   const wsFilesToReplace = presetWsFiles.filter((f) =>
     currentWsFiles.includes(f)
+  );
+  logVerbose(
+    verbose,
+    `Workspace diff: add=${wsFilesToAdd.length}, replace=${wsFilesToReplace.length}`,
+    { jsonOutput }
   );
 
   if (options.json) {

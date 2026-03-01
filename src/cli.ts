@@ -43,6 +43,7 @@ program
   .description('Apply a preset to your OpenClaw configuration')
   .argument('<preset>', 'Preset name to apply')
   .option('--dry-run', 'Show what would change without applying')
+  .option('--verbose', 'Enable detailed operation logging')
   .option('--no-backup', 'Skip creating a backup (use with caution)')
   .option(
     '--clean',
@@ -54,6 +55,7 @@ program
       preset: string,
       options: {
         dryRun?: boolean;
+        verbose?: boolean;
         backup?: boolean;
         clean?: boolean;
         force?: boolean;
@@ -62,6 +64,7 @@ program
       try {
         await applyCommand(preset, {
           dryRun: options.dryRun,
+          verbose: options.verbose,
           noBackup: !options.backup,
           clean: options.clean,
           force: options.force,
@@ -81,16 +84,23 @@ program
   .argument('<name>', 'Name for the new preset')
   .option('--description <desc>', 'Preset description')
   .option('--version <ver>', 'Preset version', '1.0.0')
+  .option('--verbose', 'Enable detailed operation logging')
   .option('--force', 'Overwrite existing preset')
   .action(
     async (
       name: string,
-      options: { description?: string; version: string; force?: boolean }
+      options: {
+        description?: string;
+        version: string;
+        verbose?: boolean;
+        force?: boolean;
+      }
     ) => {
       try {
         await exportCommand(name, {
           description: options.description,
           version: options.version,
+          verbose: options.verbose,
           force: options.force,
         });
       } catch (err) {
@@ -107,21 +117,28 @@ program
   .description('Show diff between current config and a preset')
   .argument('<preset>', 'Preset name to compare against')
   .option('--json', 'Output as JSON')
-  .action(async (preset: string, options: { json?: boolean }) => {
-    try {
-      await diffCommand(preset, { json: options.json });
-    } catch (err) {
-      console.error(
-        `Error: ${err instanceof Error ? err.message : String(err)}`
-      );
-      process.exit(1);
+  .option('--verbose', 'Enable detailed operation logging')
+  .action(
+    async (preset: string, options: { json?: boolean; verbose?: boolean }) => {
+      try {
+        await diffCommand(preset, {
+          json: options.json,
+          verbose: options.verbose,
+        });
+      } catch (err) {
+        console.error(
+          `Error: ${err instanceof Error ? err.message : String(err)}`
+        );
+        process.exit(1);
+      }
     }
-  });
+  );
 
 program
   .command('install')
   .description('Install the apex preset (shortcut for: apply apex)')
   .option('--dry-run', 'Show what would change without applying')
+  .option('--verbose', 'Enable detailed operation logging')
   .option('--no-backup', 'Skip creating a backup (use with caution)')
   .option(
     '--clean',
@@ -130,12 +147,14 @@ program
   .action(
     async (options: {
       dryRun?: boolean;
+      verbose?: boolean;
       backup?: boolean;
       clean?: boolean;
     }) => {
       try {
         await applyCommand('apex', {
           dryRun: options.dryRun,
+          verbose: options.verbose,
           noBackup: !options.backup,
           clean: options.clean,
         });

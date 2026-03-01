@@ -295,6 +295,29 @@ describe('applyCommand', () => {
     expect(combined).toContain('removes those comments');
   });
 
+  test('--verbose prints detailed operation logs', async () => {
+    const env = await createTempEnv('openclaw-apply-verbose-');
+
+    await writeConfig(env.configPath, { identity: { name: 'VerboseBase' } });
+    await writeUserPreset(env.presetsDir, 'verbose-preset', {
+      name: 'verbose-preset',
+      description: 'Verbose apply test',
+      version: '1.0.0',
+      config: {
+        identity: { name: 'VerboseUpdated' },
+      },
+    });
+
+    const logs = await captureLogs(async () => {
+      await applyCommand('verbose-preset', { noBackup: true, verbose: true });
+    });
+
+    const combined = logs.join('\n');
+    expect(combined).toContain('[verbose]');
+    expect(combined).toContain('Resolved paths:');
+    expect(combined).toContain('Apply flow completed');
+  });
+
   test('filters sensitive fields from preset config before merge', async () => {
     const env = await createTempEnv('openclaw-apply-sensitive-');
 

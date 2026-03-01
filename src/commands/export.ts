@@ -13,7 +13,16 @@ import { exportWorkspaceFiles, resolveWorkspaceDir } from '../core/workspace';
 interface ExportOptions {
   description?: string;
   force?: boolean;
+  verbose?: boolean;
   version?: string;
+}
+
+function logVerbose(enabled: boolean, message: string): void {
+  if (!enabled) {
+    return;
+  }
+
+  console.log(pc.dim(`[verbose] ${message}`));
 }
 
 export async function exportCommand(
@@ -21,10 +30,16 @@ export async function exportCommand(
   options: ExportOptions = {}
 ): Promise<void> {
   assertValidPresetName(name);
+  const verbose = Boolean(options.verbose);
   const paths = await resolveOpenClawPaths();
+  logVerbose(
+    verbose,
+    `Resolved paths: config=${paths.configPath}, presets=${paths.presetsDir}, state=${paths.stateDir}`
+  );
 
   // Check if preset already exists
   const presetDir = path.join(paths.presetsDir, name);
+  logVerbose(verbose, `Checking if preset directory exists: ${presetDir}`);
   try {
     await fs.access(presetDir);
     if (!options.force) {
@@ -42,6 +57,7 @@ export async function exportCommand(
   // Read current config
   let currentConfig: Record<string, unknown> = {};
   try {
+    logVerbose(verbose, `Reading config from ${paths.configPath}`);
     const snapshot = await readJson5(paths.configPath);
     currentConfig = snapshot.parsed;
   } catch (err) {
@@ -56,9 +72,14 @@ export async function exportCommand(
 
   // Filter sensitive fields
   const filteredConfig = filterSensitiveFields(currentConfig);
+  logVerbose(
+    verbose,
+    `Filtered config keys: before=${Object.keys(currentConfig).length}, after=${Object.keys(filteredConfig).length}`
+  );
 
   // Resolve workspace dir
   const workspaceDir = resolveWorkspaceDir(currentConfig, paths.stateDir);
+  logVerbose(verbose, `Workspace directory resolved to ${workspaceDir}`);
 
   // Build manifest
   const manifest: PresetManifest = {
@@ -71,12 +92,19 @@ export async function exportCommand(
     workspaceFiles: [],
   };
 
+  logVerbose(verbose, `Ensuring preset directory exists: ${presetDir}`);
   await fs.mkdir(presetDir, { recursive: true });
 
   // Copy workspace MD files
+  logVerbose(verbose, `Exporting workspace files from ${workspaceDir}`);
   const copiedFiles = await exportWorkspaceFiles(workspaceDir, presetDir);
   manifest.workspaceFiles = copiedFiles;
+  logVerbose(verbose, `Copied ${copiedFiles.length} workspace file(s)`);
 
+  logVerbose(
+    verbose,
+    `Writing preset manifest to ${path.join(presetDir, 'preset.json5')}`
+  );
   await savePreset(presetDir, manifest);
 
   console.log(pc.green(`\n✓ Preset '${name}' exported to: ${presetDir}`));

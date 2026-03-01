@@ -189,6 +189,15 @@ describe('exportCommand', () => {
     expect(combined).toContain('exported');
   });
 
+  test('--verbose prints detailed operation logs', async () => {
+    await exportCommand('verbose-summary-test', { verbose: true });
+
+    const combined = output.join('\n');
+    expect(combined).toContain('[verbose]');
+    expect(combined).toContain('Resolved paths:');
+    expect(combined).toContain('Writing preset manifest');
+  });
+
   test('prints workspace files in summary when files are copied', async () => {
     const workspaceDir = path.join(tempStateDir, 'workspace');
     await fs.mkdir(workspaceDir, { recursive: true });
