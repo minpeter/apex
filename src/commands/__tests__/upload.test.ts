@@ -276,3 +276,107 @@ describe('upload: uploadCommand error paths', () => {
     );
   });
 });
+
+describe('upload: uploadCommand staging cleanup', () => {
+  let tempStateDir: string;
+  let tempBinDir: string;
+  let markerPath: string;
+  let originalPath: string;
+
+  beforeEach(async () => {
+    tempStateDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'upload-cleanup-test-')
+    );
+    tempBinDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'upload-cleanup-bin-')
+    );
+    markerPath = path.join(tempStateDir, 'staging-dir.txt');
+    originalPath = process.env.PATH ?? '';
+
+    const ghPath = path.join(tempBinDir, 'gh');
+    const gitPath = path.join(tempBinDir, 'git');
+
+    await fs.writeFile(
+      ghPath,
+      `#!/bin/sh
+if [ "$1" = "--version" ]; then
+  echo "gh version 0.0.0"
+  exit 0
+fi
+
+if [ "$1" = "auth" ] && [ "$2" = "status" ]; then
+  exit 0
+fi
+
+if [ "$1" = "repo" ] && [ "$2" = "view" ]; then
+  echo '{"name":"repo"}'
+  exit 0
+fi
+
+echo "unexpected gh command: $*" >&2
+exit 1
+`,
+      'utf-8'
+    );
+
+    await fs.writeFile(
+      gitPath,
+      `#!/bin/sh
+if [ "$1" = "init" ]; then
+  mkdir -p .git
+  exit 0
+fi
+
+if [ "$1" = "add" ] || [ "$1" = "commit" ] || [ "$1" = "branch" ] || [ "$1" = "remote" ]; then
+  exit 0
+fi
+
+if [ "$1" = "push" ]; then
+  mkdir -p cleanup-gate
+  chmod 000 cleanup-gate
+  sleep 0.2
+  chmod 755 cleanup-gate
+  printf "%s" "$PWD" > "$APEX_UPLOAD_TEST_STAGING_PATH"
+  exit 0
+fi
+
+echo "unexpected git command: $*" >&2
+exit 1
+`,
+      'utf-8'
+    );
+
+    await fs.chmod(ghPath, 0o755);
+    await fs.chmod(gitPath, 0o755);
+
+    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
+    process.env.APEX_UPLOAD_TEST_STAGING_PATH = markerPath;
+    process.env.PATH = `${tempBinDir}:${originalPath}`;
+  });
+
+  afterEach(async () => {
+    Reflect.deleteProperty(process.env, 'OPENCLAW_STATE_DIR');
+    Reflect.deleteProperty(process.env, 'OPENCLAW_CONFIG_PATH');
+    Reflect.deleteProperty(process.env, 'APEX_UPLOAD_TEST_STAGING_PATH');
+    process.env.PATH = originalPath;
+
+    if (tempBinDir) {
+      await fs.rm(tempBinDir, { recursive: true, force: true });
+    }
+
+    if (tempStateDir) {
+      await fs.rm(tempStateDir, { recursive: true, force: true });
+    }
+  });
+
+  test('waits for git push completion before staging cleanup', async () => {
+    const { uploadCommand } = await import('../upload');
+
+    await uploadCommand('owner/repo');
+
+    const stagingDir = (await fs.readFile(markerPath, 'utf-8')).trim();
+    expect(stagingDir.length).toBeGreaterThan(0);
+    await expect(fs.stat(stagingDir)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+});
