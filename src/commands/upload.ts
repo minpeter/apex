@@ -13,7 +13,12 @@ import {
 } from '../core/json5-utils';
 import { filterSensitiveFields } from '../core/sensitive-filter';
 import type { PresetManifest } from '../core/types';
-import { listWorkspaceFiles, resolveWorkspaceDir } from '../core/workspace';
+import {
+  copyWorkspaceSkills,
+  listWorkspaceFiles,
+  listWorkspaceSkills,
+  resolveWorkspaceDir,
+} from '../core/workspace';
 
 interface UploadOptions {
   create?: boolean;
@@ -170,9 +175,10 @@ export function buildManifest(
   repoName: string,
   filteredConfig: Record<string, unknown>,
   workspaceFileList: string[],
-  description?: string
+  description?: string,
+  skills: string[] = []
 ): PresetManifest {
-  return {
+  const manifest: PresetManifest = {
     name: repoName,
     description:
       description ??
@@ -181,12 +187,19 @@ export function buildManifest(
     config: filteredConfig,
     workspaceFiles: workspaceFileList,
   };
+
+  if (skills.length > 0) {
+    manifest.skills = skills;
+  }
+
+  return manifest;
 }
 
 export async function prepareStagingDir(
   manifest: PresetManifest,
   workspaceDir: string,
-  workspaceFileList: string[]
+  workspaceFileList: string[],
+  workspaceSkills: string[] = []
 ): Promise<string> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'apex-upload-'));
 
@@ -205,6 +218,10 @@ export async function prepareStagingDir(
     const src = path.join(workspaceDir, filename);
     const dest = path.join(tmpDir, filename);
     await fs.copyFile(src, dest);
+  }
+
+  if (workspaceSkills.length > 0) {
+    await copyWorkspaceSkills(workspaceDir, tmpDir, workspaceSkills);
   }
 
   return tmpDir;
@@ -278,10 +295,11 @@ export async function uploadCommand(
 
   // Collect workspace files
   const workspaceFileList = await listWorkspaceFiles(workspaceDir);
-  if (workspaceFileList.length === 0) {
+  const workspaceSkillList = await listWorkspaceSkills(workspaceDir);
+  if (workspaceFileList.length === 0 && workspaceSkillList.length === 0) {
     console.log(
       pc.yellow(
-        '⚠ No workspace files found. The preset will only contain config.'
+        '⚠ No workspace files or skills found. The preset will only contain config.'
       )
     );
   }
@@ -296,7 +314,8 @@ export async function uploadCommand(
     repo,
     filteredConfig,
     workspaceFileList,
-    options.description
+    options.description,
+    workspaceSkillList
   );
 
   // Handle repo creation/existence
@@ -320,11 +339,12 @@ export async function uploadCommand(
     );
   }
 
-  // Prepare staging directory with flat structure
+  // Prepare staging directory with preset payload
   const stagingDir = await prepareStagingDir(
     manifest,
     workspaceDir,
-    workspaceFileList
+    workspaceFileList,
+    workspaceSkillList
   );
 
   try {
@@ -343,6 +363,9 @@ export async function uploadCommand(
   );
   if (workspaceFileList.length > 0) {
     console.log(`  Workspace files: ${workspaceFileList.join(', ')}`);
+  }
+  if (workspaceSkillList.length > 0) {
+    console.log(`  Skills: ${workspaceSkillList.join(', ')}`);
   }
   console.log('  Preset manifest: preset.json5');
   if (filteredKeyCount < configKeyCount) {

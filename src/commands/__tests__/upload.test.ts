@@ -87,6 +87,18 @@ describe('upload: buildManifest', () => {
     expect(manifest.config).toEqual({});
     expect(manifest.workspaceFiles).toEqual([]);
   });
+
+  test('includes skills when provided', () => {
+    const manifest = buildManifest(
+      'skill-preset',
+      {},
+      ['AGENTS.md'],
+      'Skill preset',
+      ['prompt-guard', 'tmux-opencode']
+    );
+
+    expect(manifest.skills).toEqual(['prompt-guard', 'tmux-opencode']);
+  });
 });
 
 describe('upload: buildPushCommand', () => {
@@ -212,6 +224,41 @@ describe('upload: prepareStagingDir', () => {
       );
       expect(content).toContain('AGENTS.md');
       expect(content).toContain('workspaceFiles');
+    } finally {
+      await fs.rm(stagingDir, { recursive: true, force: true });
+    }
+  });
+
+  test('copies skills directory into staging dir', async () => {
+    const skillDir = path.join(tempWorkspaceDir, 'skills', 'my-skill');
+    await fs.mkdir(path.join(skillDir, 'scripts'), { recursive: true });
+    await fs.writeFile(path.join(skillDir, 'SKILL.md'), '# My Skill', 'utf-8');
+    await fs.writeFile(
+      path.join(skillDir, 'scripts', 'run.sh'),
+      '#!/bin/sh\necho "ok"\n',
+      'utf-8'
+    );
+
+    const manifest = buildManifest('test', {}, [], undefined, ['my-skill']);
+    const stagingDir = await prepareStagingDir(
+      manifest,
+      tempWorkspaceDir,
+      [],
+      ['my-skill']
+    );
+
+    try {
+      const entry = await fs.readFile(
+        path.join(stagingDir, 'skills', 'my-skill', 'SKILL.md'),
+        'utf-8'
+      );
+      expect(entry).toBe('# My Skill');
+
+      const script = await fs.readFile(
+        path.join(stagingDir, 'skills', 'my-skill', 'scripts', 'run.sh'),
+        'utf-8'
+      );
+      expect(script).toContain('echo "ok"');
     } finally {
       await fs.rm(stagingDir, { recursive: true, force: true });
     }
