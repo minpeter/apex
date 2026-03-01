@@ -9,10 +9,27 @@ apex is a CLI utility for managing configuration presets for [OpenClaw](https://
 
 ### Installation
 
+#### via npm / Bun (Recommended)
+
+```bash
+# Run directly without installing
+bunx oh-my-openclaw install
+npx oh-my-openclaw install
+
+# Or install globally
+bun add -g oh-my-openclaw
+npm i -g oh-my-openclaw
+
+# Then use the apex command
+apex install
+```
+
+#### From source
+
 1. Clone the repository:
 ```bash
-   git clone https://github.com/minpeter/apex.git
-   cd apex
+   git clone https://github.com/minpeter/oh-my-openclaw.git
+   cd oh-my-openclaw
 ```
 
 2. Copy the contents of `setup.md` and paste it directly into your preferred AI coding agent:

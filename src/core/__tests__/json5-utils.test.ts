@@ -43,15 +43,16 @@ describe('json5-utils', () => {
     expect(snapshot.parsed).toEqual({ name: 'test', enabled: true });
   });
 
-  test('writes JSON5 using 2-space indent', async () => {
+  test('writes standard JSON using 2-space indent', async () => {
     const filePath = await createTempPath('written.json5');
     await writeJson5(filePath, { name: 'test', nested: { value: 1 } });
 
     const written = await fs.readFile(filePath, 'utf-8');
 
-    expect(written).toContain('\n  nested: {\n    value: 1,\n  },\n');
+    // writeJson5 now outputs standard JSON for gateway compatibility
+    expect(written).toContain('"nested"');
     expect(written).toBe(
-      stringifyJson5({ name: 'test', nested: { value: 1 } })
+      JSON.stringify({ name: 'test', nested: { value: 1 } }, null, 2)
     );
   });
 

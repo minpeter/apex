@@ -75,7 +75,9 @@ export async function writeJson5(
   filePath: string,
   data: Record<string, unknown>
 ): Promise<void> {
-  const content = JSON5.stringify(data, null, 2);
+  // Write standard JSON (valid JSON5 subset) to ensure compatibility
+  // with openclaw gateway which may not handle unquoted keys
+  const content = JSON.stringify(data, null, 2);
   await fs.writeFile(filePath, content, 'utf-8');
 }
 

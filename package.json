@@ -1,8 +1,37 @@
 {
-  "name": "apex",
+  "name": "oh-my-openclaw",
   "version": "1.0.0",
   "type": "module",
-  "private": true,
+  "description": "CLI tool for managing OpenClaw agent presets",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/minpeter/oh-my-openclaw.git"
+  },
+  "homepage": "https://github.com/minpeter/oh-my-openclaw#readme",
+  "bugs": {
+    "url": "https://github.com/minpeter/oh-my-openclaw/issues"
+  },
+  "keywords": [
+    "openclaw",
+    "cli",
+    "preset",
+    "agent",
+    "configuration"
+  ],
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "bin": {
+    "apex": "bin/apex.js"
+  },
+  "files": [
+    "bin/",
+    "src/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
@@ -13,7 +42,9 @@
     "build:compile": "bun build src/cli.ts --compile --bytecode --outfile dist/apex",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "version": "changeset version",
+    "release": "changeset publish"
   },
   "dependencies": {
     "commander": "^14.0.3",
@@ -22,6 +53,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.4",
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
     "@types/bun": "^1.3.9",
     "typescript": "^5.9.3",
     "ultracite": "7.2.4"
