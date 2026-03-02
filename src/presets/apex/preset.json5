@@ -57,6 +57,11 @@
     channels: {
       discord: {
         allowBots: true,
+        guilds: {
+          '*': {
+            requireMention: true,
+          },
+        },
       },
     },
     // Remove legacy unsupported root key if it exists in current user config.
