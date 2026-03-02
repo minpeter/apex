@@ -6,14 +6,13 @@
 
 ## OVERVIEW
 
-Bun + TypeScript CLI for OpenClaw preset lifecycle management: list, apply/install, diff, export, restore, upload. Runtime entry is `src/cli.ts` via launcher `bin/apex.js`; optional compiled artifact is `dist/apex` from `bun run build:compile`.
+Bun + TypeScript CLI for OpenClaw preset lifecycle management: list, apply/install, diff, export, restore, upload. Runtime entry is `src/cli.ts`; optional compiled artifact is `dist/apex` from `bun run build:compile`.
 
 ## STRUCTURE
 
 ```
 apex/
 ├── AGENTS.md                    # root map + cross-module invariants
-├── bin/apex.js                  # launcher; imports src/cli.ts
 ├── src/
 │   ├── cli.ts                   # Commander wiring for all commands
 │   ├── commands/
@@ -86,7 +85,7 @@ apex/
 
 - `install` is intentionally implemented as `apply apex` in CLI wiring.
 - `--dry-run` avoids final writes but can still resolve remote presets/cache.
-- Launcher executes source (`bin/apex.js` -> `src/cli.ts`); compiled binary is a separate path.
+- Launcher executes source from `src/cli.ts`; compiled binary is a separate path.
 - Release workflow runs on `push` to `main`; code-quality runs on both `pull_request` and `push` to `main`.
 
 ## COMMANDS

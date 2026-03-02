@@ -23,10 +23,9 @@
     "bun": ">=1.0.0"
   },
   "bin": {
-    "apex": "bin/apex.js"
+    "apex": "src/cli.ts"
   },
   "files": [
-    "bin/",
     "src/"
   ],
   "publishConfig": {
