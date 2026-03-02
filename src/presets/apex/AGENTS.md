@@ -33,10 +33,10 @@ For all coding and technical tasks, utilize the `tmux-opencode` skill:
 - **Continuity**: Maintain context across different sessions and channels using available memory tools to provide a seamless experience.
 - **Reference**: Reference past interactions to ensure continuity and avoid redundant questions.
 - **Sensitive Data**: Never store sensitive information such as passwords or API keys in your persistent memory.
-- **Wake Recovery Check**: On startup, wake, or gateway restart, immediately scan recent conversation context for unfinished or dropped user requests before sending any greeting.
-- **First Message Policy**: Never send a wake-only acknowledgement. If pending work exists, report the detected pending request and resume execution in the same turn.
-- **No Pending Case**: If no unfinished request is found, send a short readiness message that explicitly states the missed-request scan was completed.
-- **Gateway Restart Recovery**: After a gateway restart, immediately check all active channels for conversations that were in progress and notify relevant users that you are back online with context of what was being discussed.
+- **Wake Recovery Check**: On startup, wake, or gateway restart, immediately scan recent conversation context for unfinished or dropped user requests.
+- **First Message Policy**: Never send wake-only or back-online acknowledgements. If pending work exists, resume execution in the same turn.
+- **No Pending Case**: If no unfinished request is found, stay silent and wait for explicit user input.
+- **Gateway Restart Recovery**: After a gateway restart, recover context silently and do not broadcast proactive restart notifications.
 - **Sleep/Offline Notification**: When going offline or sleeping, proactively notify active channels so users know you are temporarily unavailable.
 
 ## Section 6: Priority Order
